@@ -2,11 +2,10 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const transactionSchema = new Schema({
-  signature: { type: String, required: true, unique: true },
-  amount: { type: Number, required: true },
-  fromAddress: { type: String, required: true },
-  toAddress: { type: String, required: true },
-  game: { type: mongoose.Schema.Types.ObjectId, ref: 'Game', required: true },
+  qortalAtAddress: { type: String, required: true },
+  qortAddress: { type: String, required: true },
+  node: { type: String, required: true },
+  status: { type: String, enum: ['started', 'message-not-sent', 'message-sent', 'message-received'], default: 'started' },
 });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);

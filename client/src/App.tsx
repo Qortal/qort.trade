@@ -21,7 +21,7 @@ import { Notification } from "./components/common/notification/Notification";
 import { LoadingContext } from "./contexts/loadingContext";
 
 // Initialize Google Analytics
-ReactGA.initialize("G-J3QYNDDK5N");
+// ReactGA.initialize("G-J3QYNDDK5N");
 
 export const isExtensionInstalledFunc = async () => {
   try {
@@ -271,6 +271,8 @@ function App() {
       setAvatar("");
       setIsSocketUp(false);
       localStorage.setItem("token", "");
+    } else if(event.data.type === "RESPONSE_FOR_TRADES"){
+      console.log('message', event.data.payload)
     }
   };
 

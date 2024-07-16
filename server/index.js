@@ -17,19 +17,19 @@ if (process.env.NODE_ENV !== "production") {
 
 connectDB();
 
-createUserHome();
 app.use(cors());
 app.use(express.json()); // This line is crucial
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
-});
+// const io = new Server(server, {
+//   cors: {
+//     origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+//     methods: ["GET", "POST"],
+//   },
+// });
 
+app.use("/api/transaction", require("./api/transaction"));
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "../client/dist")));

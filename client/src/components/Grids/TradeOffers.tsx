@@ -4,7 +4,7 @@ import { ColDef } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
-import { sendRequestToExtension } from '../../App';
+import { sendRequestToExtension, serverUrl } from '../../App';
 import { Button } from '@mui/material';
 
 interface RowData {
@@ -35,10 +35,10 @@ export const TradeOffers: React.FC = () => {
 
   const onRowClicked = (event: any) => {
     setSelectedOffer(event.data)
-    console.log("Row clicked: ", event.data);
-    // Handle the row click callback with event.data
+
   };
 
+  console.log({selectedOffer})
   const restartTradePresenceWebSocket = () => {
     setTimeout(() => initTradePresenceWebSocket(true), 50)
 }
@@ -89,7 +89,6 @@ export const TradeOffers: React.FC = () => {
 
 const processOffersWithPresence = () => {
     if (offeringTrades.current === null) return
-    console.log('offeringTrades.current', offeringTrades.current)
     async function asyncForEach(array: any, callback: any) {
         for (let index = 0; index < array.length; index++) {
             await callback(array[index], index, array)
@@ -101,7 +100,6 @@ const processOffersWithPresence = () => {
     }
 
     const startOfferPresenceMapping = async () => {
-        console.log('tradePresenceTxns.current', tradePresenceTxns.current)
         if (tradePresenceTxns.current) {
             for (const tradePresence of tradePresenceTxns.current) {
               const offerIndex = offeringTrades.current.findIndex(offeringTrade => offeringTrade.qortalCreatorTradeAddress === tradePresence.tradeAddress);
@@ -111,9 +109,7 @@ const processOffersWithPresence = () => {
             }
           }
           
-        console.log('second', offeringTrades.current)
         let filteredOffers = offeringTrades.current.filter((offeringTrade) => filterOffersUsingTradePresence(offeringTrade))
-        console.log({filteredOffers})
         let tradesPresenceCleaned: any[] = filteredOffers
 
       
@@ -125,7 +121,6 @@ const processOffersWithPresence = () => {
             })
         })
 					
-        console.log({tradesPresenceCleaned})
         if(tradesPresenceCleaned){
             setOffers(tradesPresenceCleaned)
         }
@@ -141,13 +136,12 @@ const restartTradeOffersWebSocket = () => {
 
   const initTradePresenceWebSocket = (restarted = false) => {
     let socketTimeout: any
-    let socketLink = `ws://host4data.qortal.org:12391/websockets/crosschain/tradepresence`
+    let socketLink = `wss://appnode.qortal.org/websockets/crosschain/tradepresence`
     const socket = new WebSocket(socketLink)
     socket.onopen = () => {
         setTimeout(pingSocket, 50)
     }
     socket.onmessage = (e) => {
-        console.log('data', JSON.parse(e.data))
         tradePresenceTxns.current = JSON.parse(e.data)
         processOffersWithPresence()
         restarted = false
@@ -168,7 +162,7 @@ const restartTradeOffersWebSocket = () => {
 const initTradeOffersWebSocket = (restarted = false) => {
     let tradeOffersSocketCounter = 0
     let socketTimeout: any
-    let socketLink = `ws://host4data.qortal.org:12391/websockets/crosschain/tradeoffers?foreignBlockchain=LITECOIN&includeHistoric=true`
+    let socketLink = `wss://appnode.qortal.org/websockets/crosschain/tradeoffers?foreignBlockchain=LITECOIN&includeHistoric=true`
     const socket = new WebSocket(socketLink)
     socket.onopen = () => {
         setTimeout(pingSocket, 50)
@@ -176,7 +170,6 @@ const initTradeOffersWebSocket = (restarted = false) => {
     }
     socket.onmessage = (e) => {
         offeringTrades.current = [...offeringTrades.current, ...JSON.parse(e.data)]
-        console.log('offers', JSON.parse(e.data))
         tradeOffersSocketCounter += 1
         restarted = false
         processOffersWithPresence()
@@ -233,7 +226,7 @@ useEffect(()=> {
 const buyOrder = async ()=> {
   try {
     if(!selectedOffer) return
-    console.log({selectedOffer})
+    
     const response = await sendRequestToExtension(
       "REQUEST_BUY_ORDER",
       {
@@ -241,11 +234,33 @@ const buyOrder = async ()=> {
       },
       60000
     );
+    if(response?.qortalAtAddress){
+      const res = await axios.post(
+        `${serverUrl}/api/transaction/updatetx`,
+        {
+          qortalAtAddress: response?.qortalAtAddress , qortAddress: response?.qortAddress, node: response.node, status: "message-received"
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+    
+    const data = res.data;
   } catch (error) {
     
   }
 }
-  console.log({offers})
+
+const getRowStyle = (params: any) => {
+  if (params.data.qortalAtAddress === selectedOffer?.qortalAtAddress) {
+    return { background: 'lightblue' };
+  }
+  return null;
+};
+console.log('offers', offers.filter((item)=> item?.mode !== 'OFFERING'))
   return (
     <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
       <AgGridReact
@@ -253,6 +268,8 @@ const buyOrder = async ()=> {
         rowData={offers}
         onRowClicked={onRowClicked}
         rowSelection="single"
+        getRowStyle={getRowStyle}
+
       />
       {selectedOffer && (
               <Button onClick={buyOrder}>Buy</Button>
