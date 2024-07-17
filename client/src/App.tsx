@@ -3,8 +3,7 @@ import ReactGA from "react-ga4";
 import "./App.css";
 import socketService from "./services/socketService";
 import GameContext, {
-  IGameContextProps,
-  Player,
+  IContextProps,
   UserNameAvatar,
 } from "./contexts/gameContext";
 import { Route, Routes } from "react-router-dom";
@@ -19,7 +18,8 @@ import {
 } from "./contexts/notificationContext";
 import { Notification } from "./components/common/notification/Notification";
 import { LoadingContext } from "./contexts/loadingContext";
-
+import axios from "axios";
+import { nodeUrl } from "./constants";
 // Initialize Google Analytics
 // ReactGA.initialize("G-J3QYNDDK5N");
 
@@ -108,15 +108,13 @@ if (import.meta.env.MODE === "production") {
 }
 
 function App() {
-  const [gameWinner, setGameWinner] = useState<"R" | "B" | "TIE" | null>(null);
-  const [isInRoom, setInRoom] = useState(false);
-  const [playerSymbol, setPlayerSymbol] = useState<"R" | "B">("R");
-  const [isPlayerTurn, setPlayerTurn] = useState(false);
-  const [isGameStarted, setGameStarted] = useState(false);
-  const [players, setPlayers] = useState<Record<string, Player>>({});
-  const [game, setGame] = useState<any>(null);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [qortBalance, setQortBalance] = useState<any>(null);
+  const [ltcBalance, setLtcBalance] = useState<any>(null);
+
+
   const [isSocketUp, setIsSocketUp] = useState<boolean>(false);
+  const [onGoingTrades, setOngoingTrades] = useState([])
   const [userNameAvatar, setUserNameAvatar] = useState<
     Record<string, UserNameAvatar>
   >({});
@@ -126,7 +124,11 @@ function App() {
     msg: "",
   });
   const [loadingSlider, setLoadingSlider] = useState<boolean>(false);
-  const [loadingGame, setLoadingGame] = useState<boolean>(false);
+
+  const loadingContextValue = {
+    loadingSlider,
+    setLoadingSlider,
+  };
 
   const requestUserInfo = async () => {
     setLoadingSlider(true);
@@ -159,27 +161,7 @@ function App() {
     setNotification({ alertType: "", msg: "" });
   };
 
-  const gameContextValue: IGameContextProps = {
-    gameWinner,
-    setGameWinner,
-    isInRoom,
-    setInRoom,
-    playerSymbol,
-    setPlayerSymbol,
-    isPlayerTurn,
-    setPlayerTurn,
-    isGameStarted,
-    setGameStarted,
-    setPlayers,
-    players,
-    game,
-    setGame,
-    userInfo,
-    setUserInfo,
-    userNameAvatar,
-    setUserNameAvatar,
-  };
-
+  
   const userContextValue: UserContextProps = {
     avatar,
     setAvatar,
@@ -191,12 +173,6 @@ function App() {
     resetNotification,
   };
 
-  const loadingContextValue = {
-    loadingSlider,
-    setLoadingSlider,
-    loadingGame,
-    setLoadingGame,
-  };
 
   const isInstalledFunc = async () => {
     try {
@@ -264,7 +240,59 @@ function App() {
     }, 750);
   }, []);
 
-  const handleMessage = (event: any) => {
+  const fetchOngoingTransactions = async()=> {
+    try {
+        const response = await axios.get(`${serverUrl}/api/transaction/fetch-qortAddress?qortAddress=${userInfo?.address}`)
+        setOngoingTrades(response.data)
+    } catch (error) {
+      
+    }
+  }
+  useEffect(() => {
+    if(userInfo?.address){
+      fetchOngoingTransactions()
+
+    }
+  }, [userInfo?.address]);
+
+
+  const getQortBalance = async ()=> {
+    const balanceUrl: string = `${nodeUrl}/addresses/balance/${userInfo?.address}`;
+    const balanceResponse = await axios(balanceUrl);
+    setQortBalance(balanceResponse.data?.value)
+  }
+
+  const getLTCBalance = async () => {
+    try {
+
+      const response = await sendRequestToExtension(
+        "REQUEST_LTC_BALANCE"
+      );
+      
+      if(!response.error){
+        setLtcBalance(response)
+      }
+    } catch (error) {
+
+    }
+  }
+
+  useEffect(() => {
+    if(!userInfo?.address) return
+    const intervalGetTradeInfo = setInterval(() => {
+      fetchOngoingTransactions()
+      getLTCBalance()
+      getQortBalance()
+    }, 150000)
+    getLTCBalance()
+      getQortBalance()
+    return () => {
+      clearInterval(intervalGetTradeInfo)
+    }
+  }, [userInfo?.address])
+
+
+  const handleMessage = async (event: any) => {
     if (event.data.type === "LOGOUT") {
       console.log("Logged out from extension");
       setUserInfo(null);
@@ -272,7 +300,28 @@ function App() {
       setIsSocketUp(false);
       localStorage.setItem("token", "");
     } else if(event.data.type === "RESPONSE_FOR_TRADES"){
-      console.log('message', event.data.payload)
+      console.log('message', event.data)
+
+      const response = event.data.payload
+      if (response?.extra?.atAddress) {
+        try {
+          const status = response.callResponse ? 'trade-ongoing' : 'trade-failed'
+          const res = await axios.post(
+            `${serverUrl}/api/transaction/updatetx`,
+            {
+              qortalAtAddress: response?.extra.atAddress, qortAddress:userInfo.address, status, message: response.extra.message
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          fetchOngoingTransactions()
+        } catch (error) {
+          console.log({error})
+        }
+      }
     }
   };
 
@@ -282,7 +331,20 @@ function App() {
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, []);
+  }, [userInfo?.address]);
+
+  const gameContextValue: IContextProps = {
+    userInfo,
+    setUserInfo,
+    userNameAvatar,
+    setUserNameAvatar,
+    setOngoingTrades,
+    onGoingTrades,
+    fetchOngoingTransactions,
+    ltcBalance,
+    qortBalance
+  };
+
 
   return (
     <NotificationContext.Provider value={notificationContextValue}>

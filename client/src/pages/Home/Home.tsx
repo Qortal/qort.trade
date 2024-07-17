@@ -10,6 +10,7 @@ import { sendRequestToExtension, serverUrl } from "../../App";
 import { NotificationContext } from "../../contexts/notificationContext";
 
 import { TradeOffers } from "../../components/Grids/TradeOffers";
+import { OngoingTrades } from "../../components/Grids/OngoingTrades";
 
 interface IsInstalledReturn {
   success: boolean;
@@ -29,7 +30,7 @@ export const HomePage: FC<IsInstalledProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { } = useContext(gameContext);
+  const { qortBalance, ltcBalance} = useContext(gameContext);
   const { setNotification } = useContext(NotificationContext);
 
 
@@ -104,9 +105,19 @@ export const HomePage: FC<IsInstalledProps> = ({
     }
   };
 
+  console.log({qortBalance})
   return (
     <AppContainer>
       {/* <Header /> */}
+      {qortBalance !== null && (
+              <p>{qortBalance}</p>
+
+      )}
+      {ltcBalance !== null && (
+              <p>{ltcBalance}</p>
+
+      )}
+      <OngoingTrades />
       <TradeOffers />
     </AppContainer>
   );

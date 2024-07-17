@@ -5,8 +5,9 @@ const transactionSchema = new Schema({
   qortalAtAddress: { type: String, required: true },
   qortAddress: { type: String, required: true },
   node: { type: String, required: true },
-  status: { type: String, enum: ['started', 'message-not-sent', 'message-sent', 'message-received'], default: 'started' },
-});
+  status: { type: String, enum: [ 'message-sent', 'trade-ongoing', 'trade-failed'], default: 'message-sent' },
+  message: {type: String}
+}, { timestamps: true });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 

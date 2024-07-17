@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -6,6 +6,8 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
 import { sendRequestToExtension, serverUrl } from '../../App';
 import { Button } from '@mui/material';
+import { nodeUrl } from '../../constants';
+import gameContext from '../../contexts/gameContext';
 
 interface RowData {
   amountQORT: number;
@@ -15,252 +17,296 @@ interface RowData {
 }
 
 export const TradeOffers: React.FC = () => {
-    const [offers, setOffers] = useState<any[]>([])
-    const [selectedOffer, setSelectedOffer] = useState(null)
-    const tradePresenceTxns = useRef(null)
-    const offeringTrades = useRef<any[]>([])
-    const blockedTradesList = useRef([])
+  const [offers, setOffers] = useState<any[]>([])
+  const [ltcBalance, setLTCBalance] = useState<number | null>(null)
+  const { fetchOngoingTransactions } = useContext(gameContext);
+
+  const [selectedOffer, setSelectedOffer] = useState(null)
+  const tradePresenceTxns = useRef(null)
+  const offeringTrades = useRef<any[]>([])
+  const blockedTradesList = useRef([])
+
+  console.log({ ltcBalance })
   const columnDefs: ColDef[] = [
     { headerName: "Amount (QORT)", field: "qortAmount" },
     { headerName: "Price (LTC)", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc' },
-    { headerName: "Total (LTC)", field: "foreignAmount",   },
+    { headerName: "Total (LTC)", field: "foreignAmount", },
     { headerName: "Seller", field: "qortalCreator" }
   ];
 
-  const rowData: RowData[] = [
-    { amountQORT: 100, priceUSD: 2, totalUSD: 200, seller: "Seller1" },
-    { amountQORT: 50, priceUSD: 2.5, totalUSD: 125, seller: "Seller2" },
-    // Add more rows as needed
-  ];
+ 
 
   const onRowClicked = (event: any) => {
     setSelectedOffer(event.data)
 
   };
 
-  console.log({selectedOffer})
+  console.log({ selectedOffer })
   const restartTradePresenceWebSocket = () => {
     setTimeout(() => initTradePresenceWebSocket(true), 50)
-}
+  }
 
 
 
- const getNewBlockedTrades = async () => {
-  const unconfirmedTransactionsList = async () => {
+  const getNewBlockedTrades = async () => {
+    const unconfirmedTransactionsList = async () => {
 
-    const unconfirmedTransactionslUrl = `https://api.qortal.org/transactions/unconfirmed?txType=MESSAGE&limit=0&reverse=true`
+      const unconfirmedTransactionslUrl = `https://api.qortal.org/transactions/unconfirmed?txType=MESSAGE&limit=0&reverse=true`
 
-    var addBlockedTrades = JSON.parse(localStorage.getItem('failedTrades') || '[]')
+      var addBlockedTrades = JSON.parse(localStorage.getItem('failedTrades') || '[]')
 
-    await fetch(unconfirmedTransactionslUrl).then(response => {
-      return response.json()
-    }).then(data => {
-      data.map((item: any) => {
-        const unconfirmedNessageTimeDiff = Date.now() - item.timestamp
-        const timeOneHour = 60 * 60 * 1000
-        if (Number(unconfirmedNessageTimeDiff) > Number(timeOneHour)) {
-          const addBlocked = {
-            timestamp: item.timestamp,
-            recipient: item.recipient
+      await fetch(unconfirmedTransactionslUrl).then(response => {
+        return response.json()
+      }).then(data => {
+        data.map((item: any) => {
+          const unconfirmedNessageTimeDiff = Date.now() - item.timestamp
+          const timeOneHour = 60 * 60 * 1000
+          if (Number(unconfirmedNessageTimeDiff) > Number(timeOneHour)) {
+            const addBlocked = {
+              timestamp: item.timestamp,
+              recipient: item.recipient
+            }
+            addBlockedTrades.push(addBlocked)
           }
-          addBlockedTrades.push(addBlocked)
-        }
+        })
+        localStorage.setItem("failedTrades", JSON.stringify(addBlockedTrades))
+        blockedTradesList.current = JSON.parse(localStorage.getItem('failedTrades') || '[]')
       })
-      localStorage.setItem("failedTrades", JSON.stringify(addBlockedTrades))
-      blockedTradesList.current = JSON.parse(localStorage.getItem('failedTrades') || '[]')
-    })
+    }
+
+    await unconfirmedTransactionsList()
+
+    const filterUnconfirmedTransactionsList = async () => {
+      let cleanBlockedTrades = blockedTradesList.current.reduce((newArray, cut: any) => {
+        if (cut && !newArray.some((obj: any) => obj.recipient === cut.recipient)) {
+          newArray.push(cut)
+        }
+        return newArray
+      }, [])
+      localStorage.setItem("failedTrades", JSON.stringify(cleanBlockedTrades))
+      blockedTradesList.current = JSON.parse(localStorage.getItem("failedTrades") || "[]")
+    }
+
+    await filterUnconfirmedTransactionsList()
   }
 
-  await unconfirmedTransactionsList()
-
-  const filterUnconfirmedTransactionsList = async () => {
-    let cleanBlockedTrades = blockedTradesList.current.reduce((newArray, cut: any) => {
-      if (cut && !newArray.some((obj: any) => obj.recipient === cut.recipient)) {
-        newArray.push(cut)
-      }
-      return newArray
-    }, [])
-    localStorage.setItem("failedTrades", JSON.stringify(cleanBlockedTrades))
-    blockedTradesList.current = JSON.parse(localStorage.getItem("failedTrades") || "[]")
-  }
-
-  await filterUnconfirmedTransactionsList()
-}
-
-const processOffersWithPresence = () => {
+  const processOffersWithPresence = () => {
     if (offeringTrades.current === null) return
     async function asyncForEach(array: any, callback: any) {
-        for (let index = 0; index < array.length; index++) {
-            await callback(array[index], index, array)
-        }
+      for (let index = 0; index < array.length; index++) {
+        await callback(array[index], index, array)
+      }
     }
 
     const filterOffersUsingTradePresence = (offeringTrade: any) => {
-        return offeringTrade.tradePresenceExpiry > Date.now();
+      return offeringTrade.tradePresenceExpiry > Date.now();
     }
 
     const startOfferPresenceMapping = async () => {
-        if (tradePresenceTxns.current) {
-            for (const tradePresence of tradePresenceTxns.current) {
-              const offerIndex = offeringTrades.current.findIndex(offeringTrade => offeringTrade.qortalCreatorTradeAddress === tradePresence.tradeAddress);
-              if (offerIndex !== -1) {
-                offeringTrades.current[offerIndex].tradePresenceExpiry = tradePresence.timestamp;
-              }
-            }
+      if (tradePresenceTxns.current) {
+        for (const tradePresence of tradePresenceTxns.current) {
+          const offerIndex = offeringTrades.current.findIndex(offeringTrade => offeringTrade.qortalCreatorTradeAddress === tradePresence.tradeAddress);
+          if (offerIndex !== -1) {
+            offeringTrades.current[offerIndex].tradePresenceExpiry = tradePresence.timestamp;
           }
-          
-        let filteredOffers = offeringTrades.current.filter((offeringTrade) => filterOffersUsingTradePresence(offeringTrade))
-        let tradesPresenceCleaned: any[] = filteredOffers
-
-      
-					
-        blockedTradesList.current.forEach((item: any) => {
-            const toDelete = item.recipient
-            tradesPresenceCleaned = tradesPresenceCleaned.filter(el => {
-                return el.qortalCreatorTradeAddress !== toDelete
-            })
-        })
-					
-        if(tradesPresenceCleaned){
-            setOffers(tradesPresenceCleaned)
         }
-        // self.postMessage({ type: 'PRESENCE', data: { offers: offeringTrades.current, filteredOffers: filteredOffers, relatedCoin: _relatedCoin } })
+      }
+
+      let filteredOffers = offeringTrades.current.filter((offeringTrade) => filterOffersUsingTradePresence(offeringTrade))
+      let tradesPresenceCleaned: any[] = filteredOffers
+
+
+
+      blockedTradesList.current.forEach((item: any) => {
+        const toDelete = item.recipient
+        tradesPresenceCleaned = tradesPresenceCleaned.filter(el => {
+          return el.qortalCreatorTradeAddress !== toDelete
+        })
+      })
+
+      if (tradesPresenceCleaned) {
+        setOffers(tradesPresenceCleaned)
+      }
+      // self.postMessage({ type: 'PRESENCE', data: { offers: offeringTrades.current, filteredOffers: filteredOffers, relatedCoin: _relatedCoin } })
     }
 
     startOfferPresenceMapping()
-}
+  }
 
-const restartTradeOffersWebSocket = () => {
+  const restartTradeOffersWebSocket = () => {
     setTimeout(() => initTradeOffersWebSocket(true), 50)
-}
+  }
 
   const initTradePresenceWebSocket = (restarted = false) => {
     let socketTimeout: any
     let socketLink = `wss://appnode.qortal.org/websockets/crosschain/tradepresence`
     const socket = new WebSocket(socketLink)
     socket.onopen = () => {
-        setTimeout(pingSocket, 50)
+      setTimeout(pingSocket, 50)
     }
     socket.onmessage = (e) => {
-        tradePresenceTxns.current = JSON.parse(e.data)
-        processOffersWithPresence()
-        restarted = false
+      tradePresenceTxns.current = JSON.parse(e.data)
+      processOffersWithPresence()
+      restarted = false
     }
     socket.onclose = () => {
-        clearTimeout(socketTimeout)
-        restartTradePresenceWebSocket()
+      clearTimeout(socketTimeout)
+      restartTradePresenceWebSocket()
     }
     socket.onerror = (e) => {
-        clearTimeout(socketTimeout)
+      clearTimeout(socketTimeout)
     }
     const pingSocket = () => {
-        socket.send('ping')
-        socketTimeout = setTimeout(pingSocket, 295000)
+      socket.send('ping')
+      socketTimeout = setTimeout(pingSocket, 295000)
     }
-}
+  }
 
-const initTradeOffersWebSocket = (restarted = false) => {
+  const initTradeOffersWebSocket = (restarted = false) => {
     let tradeOffersSocketCounter = 0
     let socketTimeout: any
     let socketLink = `wss://appnode.qortal.org/websockets/crosschain/tradeoffers?foreignBlockchain=LITECOIN&includeHistoric=true`
     const socket = new WebSocket(socketLink)
     socket.onopen = () => {
-        setTimeout(pingSocket, 50)
-        tradeOffersSocketCounter += 1
+      setTimeout(pingSocket, 50)
+      tradeOffersSocketCounter += 1
     }
     socket.onmessage = (e) => {
-        offeringTrades.current = [...offeringTrades.current, ...JSON.parse(e.data)]
-        tradeOffersSocketCounter += 1
-        restarted = false
-        processOffersWithPresence()
+      offeringTrades.current = [...offeringTrades.current, ...JSON.parse(e.data)]
+      tradeOffersSocketCounter += 1
+      restarted = false
+      processOffersWithPresence()
     }
     socket.onclose = () => {
-        clearTimeout(socketTimeout)
-        restartTradeOffersWebSocket()
+      clearTimeout(socketTimeout)
+      restartTradeOffersWebSocket()
     }
     socket.onerror = (e) => {
-        clearTimeout(socketTimeout)
+      clearTimeout(socketTimeout)
     }
     const pingSocket = () => {
-        socket.send('ping')
-        socketTimeout = setTimeout(pingSocket, 295000)
+      socket.send('ping')
+      socketTimeout = setTimeout(pingSocket, 295000)
     }
-}
+  }
 
-//   const fetchTradeOffers = async () => {
-//     try {
-//       const response = await axios.get('https://api.qortal.org/crosschain/tradeoffers?foreignBlockchain=LITECOIN&reverse=true&limit=100');
-//       setOffers(response.data);
-//     } catch (error) {
-//       console.error('Error fetching trade offers:', error);
-//     }
-//   };
+  //   const fetchTradeOffers = async () => {
+  //     try {
+  //       const response = await axios.get('https://api.qortal.org/crosschain/tradeoffers?foreignBlockchain=LITECOIN&reverse=true&limit=100');
+  //       setOffers(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching trade offers:', error);
+  //     }
+  //   };
 
-//   useEffect(() => {
-//     // Fetch trade offers immediately
-//     fetchTradeOffers();
+  //   useEffect(() => {
+  //     // Fetch trade offers immediately
+  //     fetchTradeOffers();
 
-//     // Set up interval to fetch trade offers every 30 seconds
-//     const interval = setInterval(() => {
-//       fetchTradeOffers();
-//     }, 30000); // 30000 milliseconds = 30 seconds
+  //     // Set up interval to fetch trade offers every 30 seconds
+  //     const interval = setInterval(() => {
+  //       fetchTradeOffers();
+  //     }, 30000); // 30000 milliseconds = 30 seconds
 
-//     // Clean up the interval on component unmount
-//     return () => clearInterval(interval);
-//   }, []);
+  //     // Clean up the interval on component unmount
+  //     return () => clearInterval(interval);
+  //   }, []);
 
-useEffect(()=> {
-  blockedTradesList.current = JSON.parse(localStorage.getItem('failedTrades') || '[]')
+  useEffect(() => {
+    blockedTradesList.current = JSON.parse(localStorage.getItem('failedTrades') || '[]')
     initTradePresenceWebSocket()
     initTradeOffersWebSocket()
     getNewBlockedTrades()
     const intervalBlockTrades = setInterval(() => {
-			getNewBlockedTrades()
-		}, 150000)
+      getNewBlockedTrades()
+    }, 150000)
 
-    return ()=> {
+    return () => {
       clearInterval(intervalBlockTrades)
     }
-}, [])
+  }, [])
 
-const buyOrder = async ()=> {
-  try {
-    if(!selectedOffer) return
-    
-    const response = await sendRequestToExtension(
-      "REQUEST_BUY_ORDER",
-      {
-        qortalAtAddress: selectedOffer?.qortalAtAddress
-      },
-      60000
-    );
-    if(response?.qortalAtAddress){
-      const res = await axios.post(
-        `${serverUrl}/api/transaction/updatetx`,
-        {
-          qortalAtAddress: response?.qortalAtAddress , qortAddress: response?.qortAddress, node: response.node, status: "message-received"
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+  useEffect(() => {
+
+    const intervalBlockTrades = setInterval(() => {
+      getNewBlockedTrades()
+    }, 150000)
+
+    return () => {
+      clearInterval(intervalBlockTrades)
     }
-    
-    const data = res.data;
-  } catch (error) {
-    
-  }
-}
+  }, [])
 
-const getRowStyle = (params: any) => {
-  if (params.data.qortalAtAddress === selectedOffer?.qortalAtAddress) {
-    return { background: 'lightblue' };
+
+
+  const getLTCBalance = async () => {
+    try {
+
+      const response = await sendRequestToExtension(
+        "REQUEST_LTC_BALANCE"
+      );
+      
+      if(!response.error){
+        return response
+      }
+    } catch (error) {
+
+    }
   }
-  return null;
-};
-console.log('offers', offers.filter((item)=> item?.mode !== 'OFFERING'))
+
+  const buyOrder = async () => {
+    try {
+      if (!selectedOffer) return
+      const checkIfOfferingRes = await axios.get(
+        `${nodeUrl}/crosschain/trade/${selectedOffer?.qortalAtAddress}`
+      );
+      const data = checkIfOfferingRes.data
+      console.log({ data })
+      if (data?.mode !== 'OFFERING') return // ADD NOTIFICATION
+
+
+      
+      if (!selectedOffer?.foreignAmount
+      ) return
+
+      const response = await sendRequestToExtension(
+        "REQUEST_BUY_ORDER",
+        {
+          qortalAtAddress: selectedOffer?.qortalAtAddress
+        },
+        60000
+      );
+      console.log({response})
+      if (response?.atAddress) {
+        const res = await axios.post(
+          `${serverUrl}/api/transaction/updatetx`,
+          {
+            qortalAtAddress: response?.atAddress, qortAddress: response?.qortAddress, node: response.node, status: "message-sent"
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        fetchOngoingTransactions()
+      }
+
+    } catch (error) {
+
+    }
+  }
+
+
+ 
+  const getRowStyle = (params: any) => {
+    if (params.data.qortalAtAddress === selectedOffer?.qortalAtAddress) {
+      return { background: 'lightblue' };
+    }
+    return null;
+  };
+  console.log('offers', offers.filter((item) => item?.mode !== 'OFFERING'))
   return (
     <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
       <AgGridReact
@@ -272,7 +318,7 @@ console.log('offers', offers.filter((item)=> item?.mode !== 'OFFERING'))
 
       />
       {selectedOffer && (
-              <Button onClick={buyOrder}>Buy</Button>
+        <Button onClick={buyOrder}>Buy</Button>
 
       )}
     </div>
