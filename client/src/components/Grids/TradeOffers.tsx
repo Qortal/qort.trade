@@ -8,7 +8,7 @@ import { sendRequestToExtension, serverUrl } from '../../App';
 import { Button } from '@mui/material';
 import { nodeUrl } from '../../constants';
 import gameContext from '../../contexts/gameContext';
-
+// fix
 interface RowData {
   amountQORT: number;
   priceUSD: number;
