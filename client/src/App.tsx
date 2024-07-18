@@ -316,6 +316,7 @@ function App() {
       if (response?.extra?.atAddress) {
         try {
           const status = response.callResponse === true ? 'trade-ongoing' : 'trade-failed'
+          const token = localStorage.getItem("token");
           const res = await axios.post(
             `${serverUrl}/api/transaction/updatetx`,
             {
@@ -324,6 +325,7 @@ function App() {
             {
               headers: {
                 "Content-Type": "application/json",
+                 'Authorization': `Bearer ${token}`
               },
             }
           );
