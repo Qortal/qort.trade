@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -19,8 +19,12 @@ interface RowData {
 export const TradeOffers: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([])
   const [ltcBalance, setLTCBalance] = useState<number | null>(null)
-  const { fetchOngoingTransactions } = useContext(gameContext);
+  const { fetchOngoingTransactions, onGoingTrades } = useContext(gameContext);
 
+  const listOfOngoingTradesAts = useMemo(()=> {
+      return onGoingTrades.filter((item)=> item?.status !== 'trade-failed').map((trade)=> trade.qortalAtAddress)
+  }, [onGoingTrades])
+  
   const [selectedOffer, setSelectedOffer] = useState(null)
   const tradePresenceTxns = useRef(null)
   const offeringTrades = useRef<any[]>([])
@@ -37,6 +41,7 @@ export const TradeOffers: React.FC = () => {
  
 
   const onRowClicked = (event: any) => {
+    if(listOfOngoingTradesAts.includes(event.data.qortalAtAddress)) return
     setSelectedOffer(event.data)
 
   };
@@ -278,6 +283,7 @@ export const TradeOffers: React.FC = () => {
       );
       console.log({response})
       if (response?.atAddress) {
+        setSelectedOffer(null)
         const res = await axios.post(
           `${serverUrl}/api/transaction/updatetx`,
           {
@@ -301,6 +307,9 @@ export const TradeOffers: React.FC = () => {
 
  
   const getRowStyle = (params: any) => {
+    if(listOfOngoingTradesAts.includes(params.data.qortalAtAddress)){
+      return {background: '#ff7373'};
+    }
     if (params.data.qortalAtAddress === selectedOffer?.qortalAtAddress) {
       return { background: 'lightblue' };
     }

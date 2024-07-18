@@ -305,7 +305,7 @@ function App() {
       const response = event.data.payload
       if (response?.extra?.atAddress) {
         try {
-          const status = response.callResponse ? 'trade-ongoing' : 'trade-failed'
+          const status = response.callResponse === true ? 'trade-ongoing' : 'trade-failed'
           const res = await axios.post(
             `${serverUrl}/api/transaction/updatetx`,
             {

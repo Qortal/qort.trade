@@ -11,6 +11,10 @@ router.post("/updatetx", async (req, res) => {
     const { qortalAtAddress, qortAddress, node, status, message = '' } = req.body;
 
     try {
+      const res =await Transaction.findOne(
+        { qortalAtAddress, qortAddress }
+      );
+      if(res && res?.status === 'trade-ongoing') res.json(true)
       const updatedTransaction = await Transaction.findOneAndUpdate(
         { qortalAtAddress, qortAddress },
         { qortalAtAddress, qortAddress, node, status, message},
@@ -41,7 +45,7 @@ router.get('/fetch-qortAddress', async (req, res) => {
       return res.status(400).json({ error: 'qortAddress query parameter is required' });
     }
 
-    const fortyMinutesAgo = new Date(Date.now() - 25 * 60 * 1000);
+    const fortyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
 
     // Fetch the transactions created in the last 15 minutes, sorted newest to oldest, filtering by qortAddress
     const transactions = await Transaction.find({
