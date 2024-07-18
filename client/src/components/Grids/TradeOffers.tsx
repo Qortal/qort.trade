@@ -115,16 +115,16 @@ console.log({onGoingTrades})
         }
       }
 
-      let filteredOffers = offeringTrades.current.filter((offeringTrade) => filterOffersUsingTradePresence(offeringTrade))
+      let filteredOffers = offeringTrades.current?.filter((offeringTrade) => filterOffersUsingTradePresence(offeringTrade)) || []
       let tradesPresenceCleaned: any[] = filteredOffers
 
 
 
       blockedTradesList.current.forEach((item: any) => {
         const toDelete = item.recipient
-        tradesPresenceCleaned = tradesPresenceCleaned.filter(el => {
+        tradesPresenceCleaned = tradesPresenceCleaned?.filter(el => {
           return el.qortalCreatorTradeAddress !== toDelete
-        })
+        }) || []
       })
 
       if (tradesPresenceCleaned) {
