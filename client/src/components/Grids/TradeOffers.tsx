@@ -20,9 +20,9 @@ export const TradeOffers: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([])
   const [ltcBalance, setLTCBalance] = useState<number | null>(null)
   const { fetchOngoingTransactions, onGoingTrades } = useContext(gameContext);
-
+console.log({onGoingTrades})
   const listOfOngoingTradesAts = useMemo(()=> {
-      return onGoingTrades?.filter((item)=> item?.status !== 'trade-failed').map((trade)=> trade.qortalAtAddress) || []
+      return onGoingTrades?.filter((item)=> item?.status !== 'trade-failed')?.map((trade)=> trade?.qortalAtAddress) || []
   }, [onGoingTrades])
   
   const [selectedOffer, setSelectedOffer] = useState<any>(null)
