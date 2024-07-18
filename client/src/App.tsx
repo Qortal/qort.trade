@@ -102,7 +102,7 @@ export async function sendRequestToExtension(
 
 export let serverUrl: string;
 if (import.meta.env.MODE === "production") {
-  serverUrl = "https://www.qort.games";
+  serverUrl = "https://www.qort.trade";
 } else {
   serverUrl = "http://localhost:3001";
 }
