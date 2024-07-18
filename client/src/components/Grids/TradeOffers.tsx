@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, RowClassParams, RowStyle } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
@@ -25,8 +25,8 @@ export const TradeOffers: React.FC = () => {
       return onGoingTrades.filter((item)=> item?.status !== 'trade-failed').map((trade)=> trade.qortalAtAddress)
   }, [onGoingTrades])
   
-  const [selectedOffer, setSelectedOffer] = useState(null)
-  const tradePresenceTxns = useRef(null)
+  const [selectedOffer, setSelectedOffer] = useState<any>(null)
+  const tradePresenceTxns = useRef<any[]>([])
   const offeringTrades = useRef<any[]>([])
   const blockedTradesList = useRef([])
 
@@ -85,7 +85,7 @@ export const TradeOffers: React.FC = () => {
           newArray.push(cut)
         }
         return newArray
-      }, [])
+      }, [] as any[])
       localStorage.setItem("failedTrades", JSON.stringify(cleanBlockedTrades))
       blockedTradesList.current = JSON.parse(localStorage.getItem("failedTrades") || "[]")
     }
@@ -260,6 +260,7 @@ export const TradeOffers: React.FC = () => {
   const buyOrder = async () => {
     try {
       if (!selectedOffer) return
+      if(!selectedOffer?.qortalAtAddress) return
       const checkIfOfferingRes = await axios.get(
         `${nodeUrl}/crosschain/trade/${selectedOffer?.qortalAtAddress}`
       );
@@ -304,14 +305,14 @@ export const TradeOffers: React.FC = () => {
 
 
  
-  const getRowStyle = (params: any) => {
-    if(listOfOngoingTradesAts.includes(params.data.qortalAtAddress)){
-      return {background: '#ff7373'};
+  const getRowStyle = (params: RowClassParams<any, any>): RowStyle | undefined => {
+    if (listOfOngoingTradesAts.includes(params.data.qortalAtAddress)) {
+      return { background: '#ff7373' };
     }
     if (params.data.qortalAtAddress === selectedOffer?.qortalAtAddress) {
       return { background: 'lightblue' };
     }
-    return null;
+    return undefined;
   };
   return (
     <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
