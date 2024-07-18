@@ -39,7 +39,6 @@ router.post("/updatetx", async (req, res) => {
 router.get('/fetch-qortAddress', async (req, res) => {
   try {
     const { qortAddress } = req.query;
-    console.log({qortAddress})
     // Validate the qortAddress parameter
     if (!qortAddress) {
       return res.status(400).json({ error: 'qortAddress query parameter is required' });
@@ -54,7 +53,6 @@ router.get('/fetch-qortAddress', async (req, res) => {
     })
     .sort({ createdAt: -1 })
     .exec();
-    console.log({transactions})
     // Placeholder for async action to get more data for each qortAddress
  
 
@@ -64,7 +62,6 @@ router.get('/fetch-qortAddress', async (req, res) => {
         `${nodeUrl}/crosschain/trade/${qortalAtAddress}`
       );
       const data = checkIfOfferingRes.data
-      console.log({data})
        return data
     };
 

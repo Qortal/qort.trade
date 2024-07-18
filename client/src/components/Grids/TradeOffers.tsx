@@ -30,7 +30,6 @@ export const TradeOffers: React.FC = () => {
   const offeringTrades = useRef<any[]>([])
   const blockedTradesList = useRef([])
 
-  console.log({ ltcBalance })
   const columnDefs: ColDef[] = [
     { headerName: "Amount (QORT)", field: "qortAmount" },
     { headerName: "Price (LTC)", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc' },
@@ -46,7 +45,6 @@ export const TradeOffers: React.FC = () => {
 
   };
 
-  console.log({ selectedOffer })
   const restartTradePresenceWebSocket = () => {
     setTimeout(() => initTradePresenceWebSocket(true), 50)
   }
@@ -266,7 +264,6 @@ export const TradeOffers: React.FC = () => {
         `${nodeUrl}/crosschain/trade/${selectedOffer?.qortalAtAddress}`
       );
       const data = checkIfOfferingRes.data
-      console.log({ data })
       if (data?.mode !== 'OFFERING') return // ADD NOTIFICATION
 
 
@@ -281,7 +278,6 @@ export const TradeOffers: React.FC = () => {
         },
         60000
       );
-      console.log({response})
       if (response?.atAddress) {
         setSelectedOffer(null)
         const res = await axios.post(
@@ -315,7 +311,6 @@ export const TradeOffers: React.FC = () => {
     }
     return null;
   };
-  console.log('offers', offers.filter((item) => item?.mode !== 'OFFERING'))
   return (
     <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
       <AgGridReact

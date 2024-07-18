@@ -105,7 +105,6 @@ export const HomePage: FC<IsInstalledProps> = ({
     }
   };
 
-  console.log({qortBalance})
   return (
     <AppContainer>
       {/* <Header /> */}
