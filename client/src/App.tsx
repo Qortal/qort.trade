@@ -242,7 +242,17 @@ function App() {
 
   const fetchOngoingTransactions = async()=> {
     try {
-        const response = await axios.get(`${serverUrl}/api/transaction/fetch-qortAddress?qortAddress=${userInfo?.address}`)
+      const token = localStorage.getItem("token");
+
+        const response = await axios.get(`${serverUrl}/api/transaction/fetch-qortAddress?qortAddress=${userInfo?.address}`, {
+          
+            headers: {
+              "Content-Type": "application/json",
+              'Authorization': `Bearer ${token}`
+            },
+          
+
+        })
         setOngoingTrades(response.data)
     } catch (error) {
       

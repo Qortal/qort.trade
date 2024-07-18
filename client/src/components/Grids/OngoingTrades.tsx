@@ -7,7 +7,6 @@ import gameContext from '../../contexts/gameContext';
 export const OngoingTrades = () => {
     const { onGoingTrades } = useContext(gameContext);
 
-    const [offers, setOffers] = useState<any[]>([])
 
 
     const columnDefs: ColDef[] = [
@@ -42,7 +41,6 @@ export const OngoingTrades = () => {
     //     return null;
     //   };
 
-    console.log({onGoingTrades})
   return (
     <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
       <AgGridReact

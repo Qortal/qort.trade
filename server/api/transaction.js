@@ -2,19 +2,29 @@ const express = require("express");
 const router = express.Router();
 const Transaction = require("../models/Transaction");
 const nodeUrl = 'https://appnode.qortal.org'
-const axios = require('axios')
+const axios = require('axios');
+const { authenticateToken } = require("./middleware");
 
 
 
-router.post("/updatetx", async (req, res) => {
+router.post("/updatetx", authenticateToken, async (req, res) => {
   try {
     const { qortalAtAddress, qortAddress, node, status, message = '' } = req.body;
+    const authId = req.user.id
+    if(authId !== qortAddress){
+      res.status(500).json({
+        errors: [
+          { msg: "Not authorized" },
+        ],
+      });
+      return
+    }
 
     try {
-      const res =await Transaction.findOne(
+      const transaction =await Transaction.findOne(
         { qortalAtAddress, qortAddress }
       );
-      if(res && res?.status === 'trade-ongoing') res.json(true)
+      if(transaction && transaction?.status === 'trade-ongoing') res.json(true)
       const updatedTransaction = await Transaction.findOneAndUpdate(
         { qortalAtAddress, qortAddress },
         { qortalAtAddress, qortAddress, node, status, message},
@@ -27,18 +37,24 @@ router.post("/updatetx", async (req, res) => {
     }
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({
-      errors: [
-        { msg: "Server error. Please try again or refresh the page." },
-      ],
-    });
+    
   }
 });
 
   // Define the GET endpoint with query parameters
-router.get('/fetch-qortAddress', async (req, res) => {
+router.get('/fetch-qortAddress', authenticateToken, async (req, res) => {
   try {
+    const authId = req.user.id
+   
     const { qortAddress } = req.query;
+    if(authId !== qortAddress){
+      res.status(500).json({
+        errors: [
+          { msg: "Not authorized" },
+        ],
+      });
+      return
+    }
     // Validate the qortAddress parameter
     if (!qortAddress) {
       return res.status(400).json({ error: 'qortAddress query parameter is required' });
@@ -81,7 +97,6 @@ router.get('/fetch-qortAddress', async (req, res) => {
     res.status(500).send(error.message);
   }
 });
-
 
 
 module.exports = router;

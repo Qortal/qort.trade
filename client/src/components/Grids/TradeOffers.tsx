@@ -280,6 +280,7 @@ export const TradeOffers: React.FC = () => {
       );
       if (response?.atAddress) {
         setSelectedOffer(null)
+        const token = localStorage.getItem("token");
         const res = await axios.post(
           `${serverUrl}/api/transaction/updatetx`,
           {
@@ -288,6 +289,7 @@ export const TradeOffers: React.FC = () => {
           {
             headers: {
               "Content-Type": "application/json",
+              'Authorization': `Bearer ${token}`
             },
           }
         );

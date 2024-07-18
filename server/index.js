@@ -30,6 +30,7 @@ const server = http.createServer(app);
 // });
 
 app.use("/api/transaction", require("./api/transaction"));
+app.use("/api/auth", require("./api/auth"));
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "../client/dist")));

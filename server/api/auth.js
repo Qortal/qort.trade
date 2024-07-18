@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require("express-validator");
-const Game = require("../models/Game");
-const User = require("../models/User");
 const ShortUniqueId = require("short-unique-id");
 const uid = new ShortUniqueId({ length: 5 });
 const axios = require('axios');
@@ -23,12 +21,16 @@ const waitingQueue = [];
 const memory = new WebAssembly.Memory({ initial: 256, maximum: 256 });
 const heap = new Uint8Array(memory.buffer);
 const jwt = require('jsonwebtoken');
+const { authenticateToken } = require("./middleware");
 
 let oauthSecretKeys = {};
 
 const generateToken = ({user}) => {
   return jwt.sign({ id: user.id }, process.env.TOKEN_SECRET_KEY, { expiresIn: '750h' }); // 1 month
 };
+
+
+
 
 const storageProxy = new Proxy(oauthSecretKeys, {
   get(target, key, receiver) {
@@ -168,87 +170,7 @@ loadWebAssembly(memory)
   return response
 }
 
-module.exports = function (io) {
-
-    router.get("/", async (req, res) => {
-        try {
-            const games = await Game.find()
-          res.json('hello');
-        } catch (err) {
-          console.error(err.message);
-          res.status(500).json({
-            errors: [
-              { msg: "Server error. Please try again or refresh the page." },
-            ],
-          });
-        }
-      });
-      router.get("/weeklystanding", async (req, res) => {
-        // For example, to get rankings for the current week:
-const startOfWeek = moment().startOf('week').toDate();
-const endOfWeek = moment().endOf('week').toDate();
-        try {
-          Game.aggregate([
-            {
-              $match: {
-                createdAt: { $gte: startOfWeek, $lte: endOfWeek }, // Filter games within the week
-                winner: { $ne: null } // Consider games where there is a winner
-              }
-            },
-            {
-              $group: {
-                _id: "$winner", // Group by winner
-                count: { $sum: 1 } // Count the number of wins
-              }
-            },
-            {
-              $lookup: {
-                from: "users", // Assuming the User collection is named 'users'
-                localField: "_id",
-                foreignField: "_id",
-                as: "winnerDetails"
-              }
-            },
-            {
-              $unwind: "$winnerDetails" // Flatten the winnerDetails array
-            },
-            {
-              $sort: { count: -1 } // Sort by the number of wins descending
-            },
-            {
-              $limit: 50 // Limit to the top 50 results
-            },
-            {
-              $project: { // Structure the output to include the qortAddress
-                _id: 0,
-                winnerId: "$_id",
-                winnerQortAddress: "$winnerDetails.qortAddress", // Assuming 'qortAddress' is a field in the User model
-                winnerName: "$winnerDetails.name", // Include the name field
-                numberOfWins: "$count"
-              }
-            }
-          ]).then(results => {
-            res.json(results)
-          }).catch(err => {
-            console.error(err); // Handle possible errors
-            res.status(500).json({
-              errors: [
-                { msg: "Server error. Please try again or refresh the page." },
-              ],
-            });
-          });
-        } catch (err) {
-          console.error(err.message);
-          res.status(500).json({
-            errors: [
-              { msg: "Server error. Please try again or refresh the page." },
-            ],
-          });
-        }
-      });
-
       router.post("/oauth",  async (req, res) => {
-        
         try {
           const validApi = await findUsableApi();
 
@@ -302,6 +224,7 @@ const endOfWeek = moment().endOf('week').toDate();
             )
           res.json({..._response, validApi});
         } catch (err) {
+          console.log({err})
           console.error(err.message);
           res.status(500).json({
             errors: [
@@ -341,78 +264,20 @@ const endOfWeek = moment().endOf('week').toDate();
         }
       });
 
-      router.get("/standingbetween", async (req, res) => {
-        const { before, after } = req.query;
-    
-        // Create an object to hold the match criteria for createdAt
-        let matchCriteria = { winner: { $ne: null } }; // Ensure there is a winner
-    
-        // Conditionally add date filters based on provided query parameters
-        if (after) {
-            const startDate = new Date(parseInt(after, 10));
-            if (isNaN(startDate.getTime())) {
-                return res.status(400).json({ errors: [{ msg: "Invalid 'after' date format." }] });
-            }
-            matchCriteria.createdAt = matchCriteria.createdAt || {};
-            matchCriteria.createdAt.$gte = startDate;
+      router.get('/isAuthenticated', authenticateToken, (req, res) => {
+        const authId = req.user.id
+   
+        const { qortAddress } = req.query;
+        if(authId !== qortAddress){
+          res.status(500).json({
+            errors: [
+              { msg: "Not authorized" },
+            ],
+          });
+          return
         }
-        if (before) {
-            const endDate = new Date(parseInt(before, 10));
-            if (isNaN(endDate.getTime())) {
-                return res.status(400).json({ errors: [{ msg: "Invalid 'before' date format." }] });
-            }
-            matchCriteria.createdAt = matchCriteria.createdAt || {};
-            matchCriteria.createdAt.$lte = endDate;
-        }
+        res.json({ authenticated: true, user: req.user });
+      });
+      
     
-        try {
-            const results = await Game.aggregate([
-                {
-                    $match: matchCriteria
-                },
-                {
-                    $group: {
-                        _id: "$winner",
-                        count: { $sum: 1 }
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "users",
-                        localField: "_id",
-                        foreignField: "_id",
-                        as: "winnerDetails"
-                    }
-                },
-                {
-                    $unwind: "$winnerDetails"
-                },
-                {
-                    $sort: { count: -1 }
-                },
-                {
-                    $limit: 50
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        winnerId: "$_id",
-                        winnerQortAddress: "$winnerDetails.qortAddress",
-                        winnerName: "$winnerDetails.name",
-                        numberOfWins: "$count"
-                    }
-                }
-            ]);
-            res.json(results);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({
-                errors: [{ msg: "Server error. Please try again or refresh the page." }]
-            });
-        }
-    });
-    
-    
-      return router;
-
-}
+    module.exports = router;
