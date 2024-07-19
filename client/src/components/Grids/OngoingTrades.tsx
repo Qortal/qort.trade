@@ -32,7 +32,7 @@ export const OngoingTrades = () => {
         { headerName: "LTC/QORT", valueGetter: (params) => +params.data.tradeInfo.expectedForeignAmount / +params.data.tradeInfo.qortAmount },
         { headerName: "Total LTC Value", valueGetter: (params) => +params.data.tradeInfo.expectedForeignAmount },
         {
-            headerName: "Notes", valueGetter: (params) => {
+            headerName: "Notes", flex: 1, valueGetter: (params) => {
                 if (params.data.tradeInfo.mode === 'TRADING') {
                     return 'The order is in the process of exchanging hands. This does not necessary mean it was purchased by your account. Wait until the process is completed.'
                 }
