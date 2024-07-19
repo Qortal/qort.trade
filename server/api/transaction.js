@@ -60,7 +60,7 @@ router.get('/fetch-qortAddress', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'qortAddress query parameter is required' });
     }
 
-    const fortyMinutesAgo = new Date(Date.now() - 2000000 * 60 * 1000);
+    const fortyMinutesAgo = new Date(Date.now() - 22 * 60 * 1000);
 
     // Fetch the transactions created in the last 15 minutes, sorted newest to oldest, filtering by qortAddress
     const transactions = await Transaction.find({

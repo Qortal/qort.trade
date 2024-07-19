@@ -73,13 +73,14 @@ export const Header = ({qortBalance, ltcBalance}: any) => {
     }
   }, [userInfo]);
 
+
   return (
     <HeaderNav>
       <LogoColumn>
     <img src={logoSVG} />
       </LogoColumn>
       <RightColumn>
-        <HeaderText>Balance: {qortBalance} QORT | {ltcBalance} LTC</HeaderText>
+        <HeaderText>Balance: {qortBalance} QORT | {ltcBalance === null ? 'N/A': ltcBalance} LTC</HeaderText>
       <NameRow>
         {userInfo?.name ? (
           <Username>{userInfo?.name}</Username>
