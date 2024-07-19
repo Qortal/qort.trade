@@ -313,7 +313,7 @@ export const TradeOffers: React.FC = () => {
         const res = await axios.post(
           `${serverUrl}/api/transaction/updatetx`,
           {
-            qortalAtAddress: response?.atAddress, qortAddress: response?.qortAddress, node: response.node, status: "message-sent"
+            qortalAtAddress: response?.atAddress, qortAddress: response?.qortAddress, node: response.node, status: "message-sent", encryptedMessageToBase58: response?.encryptedMessageToBase58, chatSignature: response?.chatSignature, sender: response?.sender, senderPublicKey: response?.senderPublicKey, reference: response?.reference
           },
           {
             headers: {

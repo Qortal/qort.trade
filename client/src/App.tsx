@@ -309,6 +309,8 @@ function App() {
       setUserInfo(null);
       setAvatar("");
       setIsAuthenticated(false);
+      setQortBalance(null)
+      setLtcBalance(null)
       localStorage.setItem("token", "");
     } else if(event.data.type === "RESPONSE_FOR_TRADES"){
       console.log('message', event.data)

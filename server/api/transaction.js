@@ -4,12 +4,13 @@ const Transaction = require("../models/Transaction");
 const nodeUrl = 'https://appnode.qortal.org'
 const axios = require('axios');
 const { authenticateToken } = require("./middleware");
+const BuyOrder = require("../models/BuyOrder");
 
 
 
 router.post("/updatetx", authenticateToken, async (req, res) => {
   try {
-    const { qortalAtAddress, qortAddress, node, status, message = '' } = req.body;
+    const { qortalAtAddress, qortAddress, node, status, message = '', encryptedMessageToBase58 = undefined, chatSignature = '', sender = '', senderPublicKey = '', reference = ''} = req.body;
     const authId = req.user.id
     if(authId !== qortAddress){
       res.status(500).json({
@@ -21,6 +22,18 @@ router.post("/updatetx", authenticateToken, async (req, res) => {
     }
 
     try {
+      if(encryptedMessageToBase58){
+        const buyOrder = new BuyOrder({
+          data: encryptedMessageToBase58,
+          recipient: "QXPejUe5Za1KD3zCMViWCX35AreMQ9H7ku",
+          sender,
+          signature: chatSignature,
+          senderPublicKey,
+          isEncrypted: true,
+          reference
+        });
+        await buyOrder.save();
+      }
       const transaction =await Transaction.findOne(
         { qortalAtAddress, qortAddress }
       );
@@ -30,7 +43,7 @@ router.post("/updatetx", authenticateToken, async (req, res) => {
         { qortalAtAddress, qortAddress, node, status, message},
         { new: true, upsert: true, runValidators: true }
       );
-
+      console.log({updatedTransaction})
       res.json(true);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -95,6 +108,25 @@ router.get('/fetch-qortAddress', authenticateToken, async (req, res) => {
     res.json(results);
   } catch (error) {
     res.status(500).send(error.message);
+  }
+});
+
+router.get('/buyorders/recent', async (req, res) => {
+  try {
+    const { secretKey } = req.query;
+    console.log({secretKey})
+    if(secretKey !== process.env.SECRET_KEY_ENDPOINT){
+      res.json([])
+      return
+    }
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const recentBuyOrders = await BuyOrder.find({
+      createdAt: { $gte: thirtyMinutesAgo }
+    });
+    res.json(recentBuyOrders);
+  } catch (err) {
+    console.error('Error fetching recent buy orders:', err);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
