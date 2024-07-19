@@ -165,7 +165,7 @@ export const HomePage: FC<IsInstalledProps> = ({
         padding: "0 30px",
         width: '100%'
       }}>
-        <TextTableTitle>Pending Transactions</TextTableTitle>
+        <TextTableTitle>My Pending Orders</TextTableTitle>
 
       </Box>
       <Spacer height="20px" />
@@ -175,7 +175,7 @@ export const HomePage: FC<IsInstalledProps> = ({
         padding: "0 30px",
         width: '100%'
       }}>
-        <TextTableTitle>Transactions List</TextTableTitle>
+        <TextTableTitle>Open Market Sell Orders</TextTableTitle>
 
       </Box>
       <Spacer height="20px" />
