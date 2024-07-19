@@ -55,10 +55,7 @@ export const TradeOffers: React.FC = () => {
       field: 'action',
       cellRenderer: (params: any) => {
         if(!selectedOffer) return null
-        console.log(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress)
         if(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress) return <BuyButton />
-        
-
         return null
      },
       width: 100,
