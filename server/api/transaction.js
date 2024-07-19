@@ -43,7 +43,6 @@ router.post("/updatetx", authenticateToken, async (req, res) => {
         { qortalAtAddress, qortAddress, node, status, message},
         { new: true, upsert: true, runValidators: true }
       );
-      console.log({updatedTransaction})
       res.json(true);
     } catch (error) {
       return res.status(500).json({ error: error.message });
@@ -114,7 +113,6 @@ router.get('/fetch-qortAddress', authenticateToken, async (req, res) => {
 router.get('/buyorders/recent', async (req, res) => {
   try {
     const { secretKey } = req.query;
-    console.log({secretKey})
     if(secretKey !== process.env.SECRET_KEY_ENDPOINT){
       res.json([])
       return
