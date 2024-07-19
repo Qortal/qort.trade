@@ -34,7 +34,7 @@ export const TradeOffers: React.FC = () => {
   const blockedTradesList = useRef([])
   const gridRef = useRef<any>(null)
 
-  const BuyButton = params => {
+  const BuyButton = () => {
     return (
       <button onClick={buyOrder} style={{borderRadius: '8px', width: '74px', height:"30px", background: "#4D7345",
          color: 'white',  cursor: 'pointer', border: '1px solid #375232', boxShadow: '0px 2.77px 2.21px 0px #00000005'
@@ -53,7 +53,7 @@ export const TradeOffers: React.FC = () => {
     {
       headerName: '',
       field: 'action',
-      cellRenderer: (params) => {
+      cellRenderer: (params: any) => {
         if(!selectedOffer) return null
         console.log(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress)
         if(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress) return <BuyButton />
