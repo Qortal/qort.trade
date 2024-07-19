@@ -8,9 +8,12 @@ import {
   GameSelectDropdownMenu,
   GameSelectDropdownMenuItem,
   HeaderNav,
+  HeaderText,
   HomeIcon,
+  LogoColumn,
   NameRow,
   QortalLogoIcon,
+  RightColumn,
   Username,
 } from "./Header-styles";
 import gameContext from "../../contexts/gameContext";
@@ -18,9 +21,9 @@ import { findUsableApi } from "../../utils/findUsableApi";
 import { UserContext } from "../../contexts/userContext";
 import { cropAddress } from "../../utils/cropAddress";
 import { BubbleCardColored1 } from "../../pages/Home/Home-Styles";
+import logoSVG from '../../assets/SVG/LOGO.svg'
 
-
-export const Header = () => {
+export const Header = ({qortBalance, ltcBalance}: any) => {
   const [openDropdown, setOpenDropdown] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -72,28 +75,18 @@ export const Header = () => {
 
   return (
     <HeaderNav>
-      <DropdownContainer>
-        <GameSelectDropdown
-          ref={buttonRef}
-          onClick={() => setOpenDropdown(!openDropdown)}
-        >
-          QONNECT4 <CaretDownIcon height="8" width="15" color="none" />
-        </GameSelectDropdown>
-        <HomeIcon height="19" width="21" color="none" />
-        {openDropdown && (
-          <GameSelectDropdownMenu ref={dropdownRef}>
-            <GameSelectDropdownMenuItem>
-              QONNECT FOUR
-            </GameSelectDropdownMenuItem>
-          </GameSelectDropdownMenu>
-        )}
-      </DropdownContainer>
+      <LogoColumn>
+    <img src={logoSVG} />
+      </LogoColumn>
+      <RightColumn>
+        <HeaderText>Balance: {qortBalance} QORT | {ltcBalance} LTC</HeaderText>
       <NameRow>
         {userInfo?.name ? (
           <Username>{userInfo?.name}</Username>
         ) : userInfo?.address ? (
           <Username>{cropAddress(userInfo?.address)}</Username>
         ) : null}
+     
         {avatar ? (
           <AvatarCircle
             src={`data:image/jpeg;base64,${avatar}`}
@@ -103,16 +96,12 @@ export const Header = () => {
           <BubbleCardColored1 style={{ height: "35px", width: "35px" }} />
         ) : (
           <QortalLogoIcon height="35" width="35" color="none" onClickFunc={() => {
-            window.open("https://www.qortal.dev/extension", "_blank")?.focus();
-              ReactGA.event({
-              category: "Redirect",
-              action: "Clicked the Qortal Logo on the home page to redirect to Qortal.dev/extension",
-              label: "Clicked the Qortal Logo on the home page to redirect to Qortal.dev/extension"
-            });
+            window.open("https://www.qortal.dev", "_blank")?.focus();
             }
           } />
         )}
       </NameRow>
+      </RightColumn>
     </HeaderNav>
   );
 };

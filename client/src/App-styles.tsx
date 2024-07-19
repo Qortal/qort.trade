@@ -6,7 +6,7 @@ export const AppContainer = styled(Box)(({ theme }) => ({
   height: "100%",
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
+  alignItems: "flex-start",
   padding: "1em 0",
 }));
 

@@ -124,7 +124,18 @@ export const NameRow = styled(Box)({
   gap: "10px",
   alignItems: "center",
 });
-
+export const LogoColumn = styled(Box)({
+  display: "flex",
+  flexDirection: "row",
+  gap: "10px",
+  alignItems: "center",
+});
+export const RightColumn = styled(Box)({
+  display: "flex",
+  flexDirection: "row",
+  gap: "10px",
+  alignItems: "center",
+});
 export const AvatarCircle = styled("img")({
   borderRadius: "50%",
   width: "35px",
@@ -132,3 +143,13 @@ export const AvatarCircle = styled("img")({
   objectFit: "cover",
   userSelect: "none",
 });
+
+
+export const HeaderText = styled(Typography)(({ theme }) => ({
+  fontFamily: "Inter",
+  color: theme.palette.text.primary,
+  fontWeight: 500,
+  fontSize: "16px",
+  lineHeight: "40px",
+  userSelect: "none",
+}));

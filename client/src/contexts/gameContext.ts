@@ -23,6 +23,10 @@ export interface IContextProps {
   setOngoingTrades: (val: any) => void;
   onGoingTrades: any[];
   fetchOngoingTransactions: ()=> void
+  isAuthenticated: boolean;
+  setIsAuthenticated: (val: any)=> void;
+  OAuthLoading: boolean;
+  setOAuthLoading: (val: boolean)=> void;
 }
 
 const defaultState: IContextProps = {
@@ -34,7 +38,11 @@ const defaultState: IContextProps = {
   setUserNameAvatar: () => {},
   onGoingTrades: [],
   setOngoingTrades: ()=> {},
-  fetchOngoingTransactions: ()=> {}
+  fetchOngoingTransactions: ()=> {},
+  isAuthenticated: false,
+  setIsAuthenticated: ()=> {},
+  OAuthLoading: false,
+  setOAuthLoading: ()=> {},
 };
 
 export default React.createContext(defaultState);

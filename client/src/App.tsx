@@ -111,6 +111,8 @@ function App() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [qortBalance, setQortBalance] = useState<any>(null);
   const [ltcBalance, setLtcBalance] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [OAuthLoading, setOAuthLoading] = useState<boolean>(false);
 
 
   const [isSocketUp, setIsSocketUp] = useState<boolean>(false);
@@ -134,7 +136,6 @@ function App() {
     setLoadingSlider(true);
     try {
       const response = await sendRequestToExtension("REQUEST_USER_INFO");
-      console.log("User info response:", response);
       return response;
     } catch (error) {
       console.error("Error requesting user info:", error);
@@ -253,8 +254,8 @@ function App() {
           
 
         })
-        setOngoingTrades(response.data)
-    } catch (error) {
+        setOngoingTrades((response?.data || []).sort((a: any, b: any) => new Date(b?.createdAt).getTime() - new Date(a?.createdAt).getTime()));
+      } catch (error) {
       
     }
   }
@@ -307,7 +308,7 @@ function App() {
       console.log("Logged out from extension");
       setUserInfo(null);
       setAvatar("");
-      setIsSocketUp(false);
+      setIsAuthenticated(false);
       localStorage.setItem("token", "");
     } else if(event.data.type === "RESPONSE_FOR_TRADES"){
       console.log('message', event.data)
@@ -354,10 +355,14 @@ function App() {
     onGoingTrades,
     fetchOngoingTransactions,
     ltcBalance,
-    qortBalance
+    qortBalance,
+    isAuthenticated, 
+    setIsAuthenticated,
+    OAuthLoading, 
+    setOAuthLoading
   };
 
-
+  
   return (
     <NotificationContext.Provider value={notificationContextValue}>
       <LoadingContext.Provider value={loadingContextValue}>

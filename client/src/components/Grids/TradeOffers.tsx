@@ -1,6 +1,6 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowClassParams, RowStyle } from 'ag-grid-community';
+import { ColDef, RowClassParams, RowStyle, SizeColumnsToContentStrategy } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
@@ -16,11 +16,14 @@ interface RowData {
   seller: string;
 }
 
+const autoSizeStrategy: SizeColumnsToContentStrategy = {
+  type: 'fitCellContents'
+};
+
 export const TradeOffers: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([])
   const [ltcBalance, setLTCBalance] = useState<number | null>(null)
   const { fetchOngoingTransactions, onGoingTrades } = useContext(gameContext);
-console.log({onGoingTrades})
   const listOfOngoingTradesAts = useMemo(()=> {
       return onGoingTrades?.filter((item)=> item?.status !== 'trade-failed')?.map((trade)=> trade?.qortalAtAddress) || []
   }, [onGoingTrades])
@@ -29,12 +32,39 @@ console.log({onGoingTrades})
   const tradePresenceTxns = useRef<any[]>([])
   const offeringTrades = useRef<any[]>([])
   const blockedTradesList = useRef([])
+  const gridRef = useRef<any>(null)
+
+  const BuyButton = params => {
+    return (
+      <button onClick={buyOrder} style={{borderRadius: '8px', width: '74px', height:"30px", background: "#4D7345",
+         color: 'white',  cursor: 'pointer', border: '1px solid #375232', boxShadow: '0px 2.77px 2.21px 0px #00000005'
+          }}>
+        BUY
+      </button>
+    );
+  };
+ 
 
   const columnDefs: ColDef[] = [
     { headerName: "Amount (QORT)", field: "qortAmount" },
-    { headerName: "Price (LTC)", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc' },
-    { headerName: "Total (LTC)", field: "foreignAmount", },
-    { headerName: "Seller", field: "qortalCreator" }
+    { headerName: "LTC/QORT", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc' },
+    { headerName: "Total LTC Value", field: "foreignAmount", },
+    { headerName: "Seller", field: "qortalCreator", flex: 1},
+    {
+      headerName: '',
+      field: 'action',
+      cellRenderer: (params) => {
+        if(!selectedOffer) return null
+        console.log(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress)
+        if(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress) return <BuyButton />
+        
+
+        return null
+     },
+      width: 100,
+      pinned: 'right',
+      resizable: false
+    }
   ];
 
  
@@ -128,7 +158,8 @@ console.log({onGoingTrades})
       })
 
       if (tradesPresenceCleaned) {
-        setOffers(tradesPresenceCleaned)
+        // setOffers(tradesPresenceCleaned)
+        updateGridData(tradesPresenceCleaned)
       }
       // self.postMessage({ type: 'PRESENCE', data: { offers: offeringTrades.current, filteredOffers: filteredOffers, relatedCoin: _relatedCoin } })
     }
@@ -303,31 +334,60 @@ console.log({onGoingTrades})
     }
   }
 
-
  
   const getRowStyle = (params: RowClassParams<any, any>): RowStyle | undefined => {
     if (listOfOngoingTradesAts.includes(params.data.qortalAtAddress)) {
-      return { background: '#ff7373' };
+      return { background: '#D9D9D91A'};
     }
     if (params.data.qortalAtAddress === selectedOffer?.qortalAtAddress) {
-      return { background: 'lightblue' };
+      return { background: '#6D94F533'};
     }
     return undefined;
   };
+  // const onGridReady = (params) => {
+  //   const allColumnIds = params.columnApi.getAllColumns().map(col => col.getColId());
+  //   params.columnApi.autoSizeColumns(allColumnIds, false);
+  // };
+
+  const updateGridData = (newData: any) => {
+    if (gridRef.current) {
+      const scrollPosition = gridRef.current.api.getVerticalScrollPosition();
+      gridRef.current.api.setSuppressRowDrag(true);
+      gridRef.current.api.setSuppressScrollOnNewData(true);
+      setOffers(newData);
+      setTimeout(() => {
+        gridRef.current.api.refreshCells();
+        gridRef.current.api.setSuppressRowDrag(false);
+        gridRef.current.api.setSuppressScrollOnNewData(false);
+      }, 0);
+    }
+  };
+
+  const getRowId = useCallback(function (params: any) {
+    return String(params.data.qortalAtAddress);
+}, []);
+
   return (
-    <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+    <div className="ag-theme-alpine-dark" style={{ height: 400, width: '100%' }}>
       <AgGridReact
+        ref={gridRef}
         columnDefs={columnDefs}
         rowData={offers}
         onRowClicked={onRowClicked}
         rowSelection="single"
         getRowStyle={getRowStyle}
-
+        getRowId={getRowId}
+        autoSizeStrategy={autoSizeStrategy}
+        // pagination={true}
+        // paginationPageSize={10}
+        // onGridReady={onGridReady}
+      //  domLayout='autoHeight'
+        // getRowNodeId={(data : any) => data.qortalAtAddress}
       />
-      {selectedOffer && (
+      {/* {selectedOffer && (
         <Button onClick={buyOrder}>Buy</Button>
 
-      )}
+      )} */}
     </div>
   );
 };

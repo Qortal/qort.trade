@@ -1,4 +1,4 @@
-import { FC, useContext,  useEffect,  useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import { AppContainer } from "../../App-styles";
 
 import axios from "axios";
@@ -11,7 +11,11 @@ import { NotificationContext } from "../../contexts/notificationContext";
 
 import { TradeOffers } from "../../components/Grids/TradeOffers";
 import { OngoingTrades } from "../../components/Grids/OngoingTrades";
-import { Button } from "@mui/material";
+import { Box, Button, CircularProgress } from "@mui/material";
+import { TextTableTitle } from "../../components/Grids/Table-styles";
+import { Spacer } from "../../components/common/Spacer";
+import { ReusableModal } from "../../components/common/reusable-modal/ReusableModal";
+import { OAuthButton, OAuthButtonRow } from "./Home-Styles";
 
 interface IsInstalledReturn {
   success: boolean;
@@ -31,20 +35,17 @@ export const HomePage: FC<IsInstalledProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { qortBalance, ltcBalance, userInfo} = useContext(gameContext);
+  const { qortBalance, ltcBalance, userInfo, isAuthenticated, setIsAuthenticated,   OAuthLoading, 
+    setOAuthLoading} = useContext(gameContext);
   const { setNotification } = useContext(NotificationContext);
-  
 
-  const [OAuthLoading, setOAuthLoading] = useState<boolean>(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
 
 
   // OAuth logic
   const oAuthFunc = async () => {
-    setOAuthLoading(true);
     try {
       const userInfoResponse = await isInstalledFunc();
-      console.log({userInfoResponse})
       if (!userInfoResponse.success) {
         setNotification({
           alertType: "alertError",
@@ -52,6 +53,7 @@ export const HomePage: FC<IsInstalledProps> = ({
         });
         return;
       } else {
+        setOAuthLoading(true)
         const res = await axios.post(
           `${serverUrl}/api/auth/oauth`,
           {
@@ -87,7 +89,6 @@ export const HomePage: FC<IsInstalledProps> = ({
             },
           }
         );
-        console.log({tokenRes})
         if (tokenRes.data) {
           localStorage.setItem("token", tokenRes.data);
           setIsAuthenticated(true)
@@ -104,13 +105,13 @@ export const HomePage: FC<IsInstalledProps> = ({
         msg: "Error when trying to authenticate, please try again!",
       });
     } finally {
-      setOAuthLoading(false);
-      
+      setOAuthLoading(false)
     }
   };
 
-  const checkIfAuthenticated = async()=> {
+  const checkIfAuthenticated = async () => {
     try {
+      setOAuthLoading(true)
       const token = localStorage.getItem("token");
       const res = await axios.get(
         `${serverUrl}/api/auth/isAuthenticated?qortAddress=${userInfo.address}`,
@@ -123,33 +124,61 @@ export const HomePage: FC<IsInstalledProps> = ({
       );
       setIsAuthenticated(true)
     } catch (error) {
-      
+
+    } finally {
+      setOAuthLoading(false)
     }
   }
-  useEffect(()=> {
-    if(!userInfo?.address) return
+  useEffect(() => {
+    if (!userInfo?.address) return
     checkIfAuthenticated()
   }, [userInfo?.address])
 
+
+
   return (
     <AppContainer>
-      {userInfo && !isAuthenticated && (
-            
-                <Button onClick={oAuthFunc}>
-                  Login To Qortal Extension To Play
-                </Button>
-          
+
+      {!isAuthenticated && (
+
+        <ReusableModal backdrop={true}>
+          <>
+            {OAuthLoading ? (
+              <CircularProgress color="success" size={25} />
+
+            ) : (
+              <OAuthButtonRow>
+                <OAuthButton onClick={oAuthFunc}>
+                  Login
+                </OAuthButton>
+              </OAuthButtonRow>
             )}
-      {/* <Header /> */}
-      {qortBalance !== null && (
-              <p>{qortBalance}</p>
+          </>
+
+        </ReusableModal>
+
 
       )}
-      {ltcBalance !== null && (
-              <p>{ltcBalance}</p>
+      <Header qortBalance={qortBalance} ltcBalance={ltcBalance} />
+      <Spacer height="40px" />
+      <Box sx={{
+        padding: "0 30px",
+        width: '100%'
+      }}>
+        <TextTableTitle>Pending Transactions</TextTableTitle>
 
-      )}
+      </Box>
+      <Spacer height="20px" />
       <OngoingTrades />
+      <Spacer height="40px" />
+      <Box sx={{
+        padding: "0 30px",
+        width: '100%'
+      }}>
+        <TextTableTitle>Transactions List</TextTableTitle>
+
+      </Box>
+      <Spacer height="20px" />
       <TradeOffers />
     </AppContainer>
   );
