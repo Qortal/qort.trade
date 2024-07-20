@@ -76,7 +76,7 @@ router.get('/fetch-qortAddress', authenticateToken, async (req, res) => {
 
     // Fetch the transactions created in the last 15 minutes, sorted newest to oldest, filtering by qortAddress
     const transactions = await Transaction.find({
-      createdAt: { $gte: fortyMinutesAgo },
+      updatedAt: { $gte: fortyMinutesAgo },
       qortAddress: qortAddress
     })
     .sort({ createdAt: -1 })

@@ -254,7 +254,7 @@ function App() {
           
 
         })
-        setOngoingTrades((response?.data || []).sort((a: any, b: any) => new Date(b?.createdAt).getTime() - new Date(a?.createdAt).getTime()));
+        setOngoingTrades((response?.data || []).sort((a: any, b: any) => new Date(b?.updatedAt).getTime() - new Date(a?.updatedAt).getTime()));
       } catch (error) {
       
     }
@@ -300,7 +300,7 @@ function App() {
     return () => {
       clearInterval(intervalGetTradeInfo)
     }
-  }, [userInfo?.address])
+  }, [userInfo?.address, isAuthenticated])
 
 
   const handleMessage = async (event: any) => {
