@@ -1,11 +1,13 @@
 const express = require("express");
 const path = require("path");
+const cron = require("node-cron");
 
 const app = express();
 const http = require("http");
 const cors = require("cors");
 const connectDB = require("./db");
 const moment = require("moment-timezone");
+const BuyOrder = require("./models/BuyOrder");
 
 process.env.TZ = 'America/New_York';
 
@@ -47,4 +49,17 @@ const PORT = process.env.PORT || 3001; // Fallback to 3001 if the PORT env varia
 
 server.listen(PORT, () => {
   console.log("server is running");
+});
+
+
+// Cron job to run twice a day at 2:00 AM and 2:00 PM
+cron.schedule('0 2,14 * * *', async () => {
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  
+  try {
+    const result = await BuyOrder.deleteMany({ createdAt: { $lt: twoHoursAgo } });
+    console.log(`Deleted ${result.deletedCount} records older than 2 hours`);
+  } catch (error) {
+    console.error('Error deleting records:', error);
+  }
 });
