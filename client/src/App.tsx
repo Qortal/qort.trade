@@ -101,8 +101,16 @@ export async function sendRequestToExtension(
 }
 
 export let serverUrl: string;
+const currentHost = window.location.host;
+console.log({currentHost})
 if (import.meta.env.MODE === "production") {
-  serverUrl = "https://www.qort.trade";
+  if (currentHost === "www.qort.trade") {
+    serverUrl = "https://www.qort.trade";
+  } else if (currentHost === "qort.trade") {
+    serverUrl = "https://qort.trade";
+  } else {
+    serverUrl = "https://www.qort.trade";
+  }
 } else {
   serverUrl = "http://localhost:3001";
 }
