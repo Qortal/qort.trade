@@ -21,7 +21,7 @@ const autoSizeStrategy: SizeColumnsToContentStrategy = {
   type: 'fitCellContents'
 };
 
-export const TradeOffers: React.FC = ({ltcBalance}) => {
+export const TradeOffers: React.FC<any> = ({ltcBalance}:any) => {
   const [offers, setOffers] = useState<any[]>([])
   
   const { fetchOngoingTransactions, onGoingTrades } = useContext(gameContext);
@@ -44,7 +44,7 @@ export const TradeOffers: React.FC = ({ltcBalance}) => {
   const gridRef = useRef<any>(null)
  
   const [open, setOpen] = useState(false)
-  const [info, setInfo] = useState(null)
+  const [info, setInfo] = useState<any>(null)
   const BuyButton = () => {
     return (
       <button onClick={buyOrder} style={{borderRadius: '8px', width: '74px', height:"30px", background: "#4D7345",
@@ -289,7 +289,7 @@ export const TradeOffers: React.FC = ({ltcBalance}) => {
 
 
   const selectedTotalLTC = useMemo(() => {
-    return selectedOffers.reduce((acc, curr) => {
+    return selectedOffers.reduce((acc: number, curr: any) => {
       return acc + (+curr.foreignAmount || 0); // Ensure qortAmount is defined
     }, 0);
   }, [selectedOffers]);
@@ -318,7 +318,7 @@ export const TradeOffers: React.FC = ({ltcBalance}) => {
       
       // if (!selectedOffer?.foreignAmount
       // ) return
-      const listOfATs = selectedOffers.map((offer)=> offer.qortalAtAddress)
+      const listOfATs = selectedOffers.map((offer: any)=> offer.qortalAtAddress)
       const endpoint = getMainEndpoint()
       const useLocal = endpoint === 'http://127.0.0.1:12391'
       const response = await sendRequestToExtension(
@@ -400,7 +400,7 @@ export const TradeOffers: React.FC = ({ltcBalance}) => {
 }, []);
 
 const selectedTotalQORT = useMemo(() => {
-  return selectedOffers.reduce((acc, curr) => {
+  return selectedOffers.reduce((acc: number, curr: any) => {
     return acc + (+curr.qortAmount || 0); // Ensure qortAmount is defined
   }, 0);
 }, [selectedOffers]);

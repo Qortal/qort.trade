@@ -21,7 +21,7 @@ import { UserContext } from "../../contexts/userContext";
 import { cropAddress } from "../../utils/cropAddress";
 import { BubbleCardColored1 } from "../../pages/Home/Home-Styles";
 import logoSVG from '../../assets/SVG/LOGO.svg'
-import { Alert, Avatar, FormControlLabel, Snackbar, Switch, styled } from "@mui/material";
+import { Alert, Avatar, FormControlLabel, Snackbar, SnackbarCloseReason, Switch, styled } from "@mui/material";
 import { getMainEndpoint, setMainEndpoint } from "../../utils/findUsableApi";
 import { sendRequestToExtension } from "../../App";
 
@@ -47,7 +47,7 @@ export const Header = ({qortBalance, ltcBalance}: any) => {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [checked, setChecked] = useState(false);
   const [open, setOpen] = useState(false)
-  const [info, setInfo] = useState(null)
+  const [info, setInfo] = useState<any>(null)
   const checkLocal = async ()=> {
     const isLocal = await checkIfLocal()
     if(!isLocal){
