@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const {Sha256} = require("asmcrypto.js")
 
 const moment = require('moment'); // using moment.js to handle dates easily
-const { findUsableApi } = require("../utils");
+const {  nodeUrl } = require("../utils");
 const { transaction, signChat, base58ToUint8Array, createKeyPair, createTransaction } = require("../transactions/transactions");
 const { Base58 } = require("../deps/Base58");
 const fs = require('fs');
@@ -172,7 +172,6 @@ loadWebAssembly(memory)
 
       router.post("/oauth",  async (req, res) => {
         try {
-          const validApi = await findUsableApi();
 
           const qortAddress = req.body.qortAddress
           const publickey = req.body.publicKey
@@ -220,11 +219,10 @@ loadWebAssembly(memory)
             brk = initialBrk;
 
             let _response = await signChatFunc(chatBytesArray,
-               nonce, validApi
+               nonce, nodeUrl
             )
-          res.json({..._response, validApi});
+          res.json({..._response, validApi: nodeUrl});
         } catch (err) {
-          console.log({err})
           console.error(err.message);
           res.status(500).json({
             errors: [

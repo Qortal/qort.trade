@@ -19,7 +19,8 @@ import {
 import { Notification } from "./components/common/notification/Notification";
 import { LoadingContext } from "./contexts/loadingContext";
 import axios from "axios";
-import { nodeUrl } from "./constants";
+import { executeEvent } from "./utils/events";
+import { getMainEndpoint } from "./utils/findUsableApi";
 // Initialize Google Analytics
 // ReactGA.initialize("G-J3QYNDDK5N");
 
@@ -276,7 +277,7 @@ function App() {
 
 
   const getQortBalance = async ()=> {
-    const balanceUrl: string = `${nodeUrl}/addresses/balance/${userInfo?.address}`;
+    const balanceUrl: string = `${getMainEndpoint()}/addresses/balance/${userInfo?.address}`;
     const balanceResponse = await axios(balanceUrl);
     setQortBalance(balanceResponse.data?.value)
   }
@@ -321,17 +322,19 @@ function App() {
       setLtcBalance(null)
       localStorage.setItem("token", "");
     } else if(event.data.type === "RESPONSE_FOR_TRADES"){
-      console.log('message', event.data)
+    
 
       const response = event.data.payload
-      if (response?.extra?.atAddress) {
+      if (response?.extra?.atAddresses
+        ) {
         try {
           const status = response.callResponse === true ? 'trade-ongoing' : 'trade-failed'
           const token = localStorage.getItem("token");
           const res = await axios.post(
             `${serverUrl}/api/transaction/updatetx`,
             {
-              qortalAtAddress: response?.extra.atAddress, qortAddress:userInfo.address, status, message: response.extra.message
+              qortalAtAddresses: response?.extra.atAddresses
+              , qortAddress:userInfo.address, status, message: response.extra.message
             },
             {
               headers: {
@@ -341,6 +344,7 @@ function App() {
             }
           );
           fetchOngoingTransactions()
+          executeEvent("execute-get-new-block-trades", {})
         } catch (error) {
           console.log({error})
         }

@@ -2,7 +2,7 @@ const bs58 = require("bs58");
 
 const {Base58} = require("../deps/Base58");
 const axios = require("axios");
-const { findUsableApi } = require("../utils");
+const {  nodeUrl } = require("../utils");
 const { PaymentTransaction } = require("./PaymentTransaction");
 const { ChatTransaction } = require("./ChatTransaction");
 
@@ -137,10 +137,9 @@ const getNameOrAddress = async (receiver) => {
     if (isAddress) {
       return receiver;
     }
-    const validApi = await findUsableApi();
 
     // Using axios to replace fetch
-    const response = await axios.get(`${validApi}/names/${receiver}`);
+    const response = await axios.get(`${nodeUrl}/names/${receiver}`);
     const data = response.data;
     if (data?.owner) return data.owner;
     if (data?.error) {
@@ -158,12 +157,11 @@ const getNameOrAddress = async (receiver) => {
 };
 
 const getLastRef = async (address) => {
-  const validApi = await findUsableApi();
 
   // Using axios to replace fetch
   try {
     const response = await axios.get(
-      `${validApi}/addresses/lastreference/${address}`
+      `${nodeUrl}/addresses/lastreference/${address}`
     );
     return response.data; // Axios handles text content via data attribute
   } catch (error) {
@@ -172,10 +170,9 @@ const getLastRef = async (address) => {
 };
 
 const sendQortFee = async () => {
-  const validApi = await findUsableApi();
   try {
     const response = await axios.get(
-      `${validApi}/transactions/unitfee?txType=PAYMENT`
+      `${nodeUrl}/transactions/unitfee?txType=PAYMENT`
     );
     const data = response.data;
     const qortFee = (Number(data) / 1e8).toFixed(8);
@@ -193,7 +190,6 @@ const sendCoin = async ({ amount, receiver }) => {
     const keyPair = createKeyPair();
     const lastRef = await getLastRef(homeAddress);
     const fee = await sendQortFee();
-    const validApi = await findUsableApi();
 
     const res = await makeTransactionRequest(
       confirmReceiver,
@@ -201,9 +197,9 @@ const sendCoin = async ({ amount, receiver }) => {
       amount,
       fee,
       keyPair,
-      validApi
+      nodeUrl
     );
-    return { res, validApi };
+    return { res, validApi: nodeUrl };
   } catch (error) {
     console.error(error?.message)
     throw error;
@@ -212,9 +208,8 @@ const sendCoin = async ({ amount, receiver }) => {
 
 const checkBlockchain = async (signature)=> {
   try {
-    const validApi = await findUsableApi();
     const response = await axios.get(
-      `${validApi}/transactions/signature/${signature}`
+      `${nodeUrl}/transactions/signature/${signature}`
     );
     return response.data
   } catch (error) {

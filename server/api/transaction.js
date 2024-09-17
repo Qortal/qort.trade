@@ -1,28 +1,32 @@
 const express = require("express");
 const router = express.Router();
 const Transaction = require("../models/Transaction");
-const nodeUrl = 'https://appnode.qortal.org'
 const axios = require('axios');
 const { authenticateToken } = require("./middleware");
 const BuyOrder = require("../models/BuyOrder");
+const { nodeUrl } = require("../utils");
 
 
 
 router.post("/updatetx", authenticateToken, async (req, res) => {
   try {
-    const { qortalAtAddress, qortAddress, node, status, message = '', encryptedMessageToBase58 = undefined, chatSignature = '', sender = '', senderPublicKey = '', reference = ''} = req.body;
-    const authId = req.user.id
-    if(authId !== qortAddress){
+    const { qortalAtAddresses, qortAddress, node, status, message = '', encryptedMessageToBase58 = undefined, chatSignature = '', sender = '', senderPublicKey = '', reference = ''} = req.body;
+    const authId = req.user.id;
+
+    
+    // Check if the authenticated user is authorized
+    if(authId !== qortAddress) {
       res.status(500).json({
         errors: [
           { msg: "Not authorized" },
         ],
       });
-      return
+      return;
     }
 
     try {
-      if(encryptedMessageToBase58){
+      // If there is an encrypted message, create a buy order
+      if(encryptedMessageToBase58) {
         const buyOrder = new BuyOrder({
           data: encryptedMessageToBase58,
           recipient: "QXPejUe5Za1KD3zCMViWCX35AreMQ9H7ku",
@@ -34,24 +38,31 @@ router.post("/updatetx", authenticateToken, async (req, res) => {
         });
         await buyOrder.save();
       }
-      const transaction =await Transaction.findOne(
-        { qortalAtAddress, qortAddress }
-      );
-      if(transaction && transaction?.status === 'trade-ongoing') res.json(true)
-      const updatedTransaction = await Transaction.findOneAndUpdate(
-        { qortalAtAddress, qortAddress },
-        { qortalAtAddress, qortAddress, node, status, message},
-        { new: true, upsert: true, runValidators: true }
-      );
-      res.json(true);
+
+      // Iterate through each qortalAtAddress and update transaction
+      for (const qortalAtAddress of qortalAtAddresses) {
+        const transaction = await Transaction.findOne({ qortalAtAddress, qortAddress });
+        if(transaction && transaction?.status === 'trade-ongoing') {
+          continue; // Skip if the transaction is already ongoing
+        }
+
+        // Update or create a new transaction for each address
+        await Transaction.findOneAndUpdate(
+          { qortalAtAddress, qortAddress },
+          { qortalAtAddress, qortAddress, node, status, message },
+          { new: true, upsert: true, runValidators: true }
+        );
+      }
+
+      res.json(true); // Return success after processing all addresses
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
   } catch (err) {
     console.error(err.message);
-    
   }
 });
+
 
   // Define the GET endpoint with query parameters
 router.get('/fetch-qortAddress', authenticateToken, async (req, res) => {

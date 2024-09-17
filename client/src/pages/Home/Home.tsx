@@ -67,6 +67,7 @@ export const HomePage: FC<IsInstalledProps> = ({
           }
         );
         const data = res.data;
+     
         const response = await sendRequestToExtension(
           "REQUEST_OAUTH",
           {
@@ -160,26 +161,30 @@ export const HomePage: FC<IsInstalledProps> = ({
 
       )}
       <Header qortBalance={qortBalance} ltcBalance={ltcBalance} />
-      <Spacer height="40px" />
+      <Spacer height="10px" />
       <Box sx={{
-        padding: "0 30px",
+        padding: "0 10px",
         width: '100%'
       }}>
-        <TextTableTitle>My Pending Orders</TextTableTitle>
+        <TextTableTitle sx={{
+          fontSize: '16px'
+        }}>My Pending Orders</TextTableTitle>
 
       </Box>
-      <Spacer height="20px" />
+      <Spacer height="10px" />
       <OngoingTrades />
-      <Spacer height="40px" />
+      <Spacer height="10px" />
       <Box sx={{
-        padding: "0 30px",
+        padding: "0 10px",
         width: '100%'
       }}>
-        <TextTableTitle>Open Market Sell Orders</TextTableTitle>
+        <TextTableTitle sx={{
+          fontSize: '16px'
+        }}>Open Market Sell Orders</TextTableTitle>
 
       </Box>
-      <Spacer height="20px" />
-      <TradeOffers />
+      <Spacer height="10px" />
+      <TradeOffers ltcBalance={ltcBalance} />
     </AppContainer>
   );
 };

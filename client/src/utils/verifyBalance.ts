@@ -1,5 +1,5 @@
 import { NotificationProps } from "../contexts/notificationContext";
-import { findUsableApi } from "../utils/findUsableApi";
+import { getMainEndpoint } from "./findUsableApi";
 
 export const verifyBalance = async (
   userInfo: any,
@@ -17,8 +17,7 @@ export const verifyBalance = async (
       return false;
     }
 
-    const validApi: string = await findUsableApi();
-    const balanceUrl: string = `${validApi}/addresses/balance/${userInfo?.address}`;
+    const balanceUrl: string = `${getMainEndpoint()}/addresses/balance/${userInfo?.address}`;
     const balanceResponse = await fetch(balanceUrl);
     const balanceData = await balanceResponse.text();
     const balanceNumber = Number(balanceData);

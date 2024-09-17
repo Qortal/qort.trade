@@ -134,7 +134,7 @@ export const RightColumn = styled(Box)({
   display: "flex",
   flexDirection: "row",
   gap: "10px",
-  alignItems: "center",
+  alignItems: "flex-start",
 });
 export const AvatarCircle = styled("img")({
   borderRadius: "50%",
@@ -150,6 +150,6 @@ export const HeaderText = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.primary,
   fontWeight: 500,
   fontSize: "16px",
-  lineHeight: "40px",
+  lineHeight: 1.2,
   userSelect: "none",
 }));

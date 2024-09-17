@@ -26,13 +26,15 @@ export const OngoingTrades = () => {
                 if (params.data.status === 'trade-ongoing') return 'Submitted'
                 if (params.data.status === 'trade-failed') return 'Failed'
                 return params.data.status
-            }
+            },
+            resizable: true ,
+            flex: 1, minWidth: 100
         },
-        { headerName: "Amount (QORT)", valueGetter: (params) => +params.data.tradeInfo.qortAmount },
-        { headerName: "LTC/QORT", valueGetter: (params) => +params.data.tradeInfo.expectedForeignAmount / +params.data.tradeInfo.qortAmount },
-        { headerName: "Total LTC Value", valueGetter: (params) => +params.data.tradeInfo.expectedForeignAmount },
+        { headerName: "Amount (QORT)", valueGetter: (params) => +params.data.tradeInfo.qortAmount, resizable: true, flex: 1, minWidth: 100  },
+        { headerName: "LTC/QORT", valueGetter: (params) => +params.data.tradeInfo.expectedForeignAmount / +params.data.tradeInfo.qortAmount , resizable: true , flex: 1, minWidth: 100},
+        { headerName: "Total LTC Value", valueGetter: (params) => +params.data.tradeInfo.expectedForeignAmount, resizable: true , flex: 1, minWidth: 100 },
         {
-            headerName: "Notes", flex: 1, valueGetter: (params) => {
+            headerName: "Notes",  valueGetter: (params) => {
                 if (params.data.tradeInfo.mode === 'TRADING') {
                     return 'The order is in the process of exchanging hands. This does not necessary mean it was purchased by your account. Wait until the process is completed.'
                 }
@@ -42,8 +44,12 @@ export const OngoingTrades = () => {
                 if (params.data.status === 'message-sent') {
                     return 'Buy request was sent, waiting for trade confirmation.'
                 }
+                if (params?.data?.message?.toLowerCase() === 'invalid search criteria') {
+                    return 'Order(s) already taken';
+                  }
+                  
                 if (params.data.message) return params.data.message
-            }
+            }, resizable: true, flex: 1, minWidth: 100
         }
     ];
 
@@ -66,6 +72,8 @@ export const OngoingTrades = () => {
                 rowSelection="single"
                 getRowId={getRowId}
                 autoSizeStrategy={autoSizeStrategy}
+                suppressHorizontalScroll={false} // Allow horizontal scroll on mobile if needed
+                suppressCellFocus={true} // Prevents cells from stealing focus in mobile
                 // pagination={true}
         // paginationPageSize={10}
         // domLayout='autoHeight'

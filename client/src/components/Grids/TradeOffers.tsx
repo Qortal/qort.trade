@@ -5,9 +5,10 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import axios from 'axios';
 import { sendRequestToExtension, serverUrl } from '../../App';
-import { Button } from '@mui/material';
-import { nodeUrl } from '../../constants';
+import { Alert, Box, Button, Snackbar, SnackbarCloseReason, Typography } from '@mui/material';
 import gameContext from '../../contexts/gameContext';
+import { subscribeToEvent, unsubscribeFromEvent } from '../../utils/events';
+import { getMainEndpoint } from '../../utils/findUsableApi';
 // fix
 interface RowData {
   amountQORT: number;
@@ -20,20 +21,30 @@ const autoSizeStrategy: SizeColumnsToContentStrategy = {
   type: 'fitCellContents'
 };
 
-export const TradeOffers: React.FC = () => {
+export const TradeOffers: React.FC = ({ltcBalance}) => {
   const [offers, setOffers] = useState<any[]>([])
-  const [ltcBalance, setLTCBalance] = useState<number | null>(null)
+  
   const { fetchOngoingTransactions, onGoingTrades } = useContext(gameContext);
   const listOfOngoingTradesAts = useMemo(()=> {
       return onGoingTrades?.filter((item)=> item?.status !== 'trade-failed')?.map((trade)=> trade?.qortalAtAddress) || []
   }, [onGoingTrades])
+
+  const offersWithoutOngoing = useMemo(()=> {
+    return offers.filter((item)=> !listOfOngoingTradesAts.includes(item.qortalAtAddress))
+  }, [listOfOngoingTradesAts, offers])
+
+ 
   
   const [selectedOffer, setSelectedOffer] = useState<any>(null)
+  const [selectedOffers, setSelectedOffers] = useState<any>([])
+
   const tradePresenceTxns = useRef<any[]>([])
   const offeringTrades = useRef<any[]>([])
   const blockedTradesList = useRef([])
   const gridRef = useRef<any>(null)
-
+ 
+  const [open, setOpen] = useState(false)
+  const [info, setInfo] = useState(null)
   const BuyButton = () => {
     return (
       <button onClick={buyOrder} style={{borderRadius: '8px', width: '74px', height:"30px", background: "#4D7345",
@@ -46,31 +57,35 @@ export const TradeOffers: React.FC = () => {
  
 
   const columnDefs: ColDef[] = [
-    { headerName: "Amount (QORT)", field: "qortAmount" },
-    { headerName: "LTC/QORT", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc' },
-    { headerName: "Total LTC Value", field: "foreignAmount", },
-    { headerName: "Seller", field: "qortalCreator", flex: 1},
-    {
-      headerName: '',
-      field: 'action',
-      cellRenderer: (params: any) => {
-        if(!selectedOffer) return null
-        if(params.data?.qortalAtAddress === selectedOffer?.qortalAtAddress) return <BuyButton />
-        return null
-     },
-      width: 100,
-      pinned: 'right',
-      resizable: false
-    }
+    { 
+      headerCheckboxSelection: true, // Adds a checkbox in the header for selecting all rows
+      checkboxSelection: true, // Adds checkboxes in each row for selection
+      headerName: "Select", // You can customize the header name
+      width: 50, // Adjust the width as needed
+      pinned: 'left', // Optional, to pin this column on the left
+      resizable: false,
+    },
+    { headerName: "Amount (QORT)", field: "qortAmount" , flex: 1, // Flex makes this column responsive
+    minWidth: 100, // Ensure it doesn't shrink too much
+    resizable: true },
+    { headerName: "LTC/QORT", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc', flex: 1, // Flex makes this column responsive
+    minWidth: 100, // Ensure it doesn't shrink too much
+    resizable: true  },
+    { headerName: "Total LTC Value", field: "foreignAmount", flex: 1, // Flex makes this column responsive
+    minWidth: 100, // Ensure it doesn't shrink too much
+    resizable: true },
+    { headerName: "Seller", field: "qortalCreator", flex: 1, // Flex makes this column responsive
+    minWidth: 100, // Ensure it doesn't shrink too much
+    resizable: true },
   ];
 
  
 
-  const onRowClicked = (event: any) => {
-    if(listOfOngoingTradesAts.includes(event.data.qortalAtAddress)) return
-    setSelectedOffer(event.data)
+  // const onRowClicked = (event: any) => {
+  //   if(listOfOngoingTradesAts.includes(event.data.qortalAtAddress)) return
+  //   setSelectedOffer(event.data)
 
-  };
+  // };
 
   const restartTradePresenceWebSocket = () => {
     setTimeout(() => initTradePresenceWebSocket(true), 50)
@@ -81,7 +96,7 @@ export const TradeOffers: React.FC = () => {
   const getNewBlockedTrades = async () => {
     const unconfirmedTransactionsList = async () => {
 
-      const unconfirmedTransactionslUrl = `https://api.qortal.org/transactions/unconfirmed?txType=MESSAGE&limit=0&reverse=true`
+      const unconfirmedTransactionslUrl = `${getMainEndpoint()}/transactions/unconfirmed?txType=MESSAGE&limit=0&reverse=true`
 
       var addBlockedTrades = JSON.parse(localStorage.getItem('failedTrades') || '[]')
 
@@ -118,7 +133,21 @@ export const TradeOffers: React.FC = () => {
     }
 
     await filterUnconfirmedTransactionsList()
+    processOffersWithPresence()
   }
+
+  const executeGetNewBlockTrades = useCallback(()=> {
+    getNewBlockedTrades()
+   
+  }, [])
+
+  useEffect(() => {
+    subscribeToEvent("execute-get-new-block-trades", executeGetNewBlockTrades);
+
+    return () => {
+      unsubscribeFromEvent("execute-get-new-block-trades", executeGetNewBlockTrades);
+    };
+  }, []);
 
   const processOffersWithPresence = () => {
     if (offeringTrades.current === null) return
@@ -257,63 +286,56 @@ export const TradeOffers: React.FC = () => {
     }
   }, [])
 
-  useEffect(() => {
-
-    const intervalBlockTrades = setInterval(() => {
-      getNewBlockedTrades()
-    }, 150000)
-
-    return () => {
-      clearInterval(intervalBlockTrades)
-    }
-  }, [])
 
 
+  const selectedTotalLTC = useMemo(() => {
+    return selectedOffers.reduce((acc, curr) => {
+      return acc + (+curr.foreignAmount || 0); // Ensure qortAmount is defined
+    }, 0);
+  }, [selectedOffers]);
 
-  const getLTCBalance = async () => {
-    try {
-
-      const response = await sendRequestToExtension(
-        "REQUEST_LTC_BALANCE"
-      );
-      
-      if(!response.error){
-        return response
-      }
-    } catch (error) {
-
-    }
-  }
 
   const buyOrder = async () => {
     try {
-      if (!selectedOffer) return
-      if(!selectedOffer?.qortalAtAddress) return
-      const checkIfOfferingRes = await axios.get(
-        `${nodeUrl}/crosschain/trade/${selectedOffer?.qortalAtAddress}`
-      );
-      const data = checkIfOfferingRes.data
-      if (data?.mode !== 'OFFERING') return // ADD NOTIFICATION
+      if(+ltcBalance < +selectedTotalLTC.toFixed(4)){
+        setOpen(true)
+        setInfo({
+          type: 'error',
+          message: "You don't have enough QORT or your balance was not retrieved"
+        })
+        return
+      }
+      
+      if (selectedOffers?.length <  1) return
+      //TODO
+      // const checkIfOfferingRes = await axios.get(
+      //   `${getMainEndpoint()}/crosschain/trade/${selectedOffer?.qortalAtAddress}`
+      // );
+      // const data = checkIfOfferingRes.data
+      // if (data?.mode !== 'OFFERING') return // ADD NOTIFICATION
 
 
       
-      if (!selectedOffer?.foreignAmount
-      ) return
-
+      // if (!selectedOffer?.foreignAmount
+      // ) return
+      const listOfATs = selectedOffers.map((offer)=> offer.qortalAtAddress)
+      const endpoint = getMainEndpoint()
+      const useLocal = endpoint === 'http://127.0.0.1:12391'
       const response = await sendRequestToExtension(
         "REQUEST_BUY_ORDER",
         {
-          qortalAtAddress: selectedOffer?.qortalAtAddress
+          qortalAtAddresses: listOfATs,
+          useLocal
         },
         60000
       );
-      if (response?.atAddress) {
-        setSelectedOffer(null)
+      if (response?.atAddresses) {
+        setSelectedOffers([])
         const token = localStorage.getItem("token");
         const res = await axios.post(
           `${serverUrl}/api/transaction/updatetx`,
           {
-            qortalAtAddress: response?.atAddress, qortAddress: response?.qortAddress, node: response.node, status: "message-sent", encryptedMessageToBase58: response?.encryptedMessageToBase58, chatSignature: response?.chatSignature, sender: response?.sender, senderPublicKey: response?.senderPublicKey, reference: response?.reference
+            qortalAtAddresses: response?.atAddresses, qortAddress: response?.qortAddress, node: response.node, status: "message-sent", encryptedMessageToBase58: response?.encryptedMessageToBase58, chatSignature: response?.chatSignature, sender: response?.sender, senderPublicKey: response?.senderPublicKey, reference: response?.reference
           },
           {
             headers: {
@@ -333,6 +355,7 @@ export const TradeOffers: React.FC = () => {
 
  
   const getRowStyle = (params: RowClassParams<any, any>): RowStyle | undefined => {
+  
     if (listOfOngoingTradesAts.includes(params.data.qortalAtAddress)) {
       return { background: '#D9D9D91A'};
     }
@@ -345,6 +368,18 @@ export const TradeOffers: React.FC = () => {
   //   const allColumnIds = params.columnApi.getAllColumns().map(col => col.getColId());
   //   params.columnApi.autoSizeColumns(allColumnIds, false);
   // };
+
+  const onSelectionChanged = (event: any) => {
+    const selectedRows = event.api.getSelectedRows();
+    
+    setSelectedOffers([...selectedRows]); // Set all selected rows
+  };
+  
+  const onRowClicked = (event: any) => {
+    if (listOfOngoingTradesAts.includes(event.data.qortalAtAddress)) return;
+    const selectedRows = gridRef.current?.api.getSelectedRows();
+    setSelectedOffers([...selectedRows]); // Always spread the array to ensure state updates correctly
+  };
 
   const updateGridData = (newData: any) => {
     if (gridRef.current) {
@@ -364,28 +399,107 @@ export const TradeOffers: React.FC = () => {
     return String(params.data.qortalAtAddress);
 }, []);
 
+const selectedTotalQORT = useMemo(() => {
+  return selectedOffers.reduce((acc, curr) => {
+    return acc + (+curr.qortAmount || 0); // Ensure qortAmount is defined
+  }, 0);
+}, [selectedOffers]);
+
+
+const onGridReady = useCallback((params: any) => {
+  params.api.sizeColumnsToFit(); // Adjust columns to fit the grid width
+  const allColumnIds = params.columnApi.getAllColumns().map((col: any) => col.getColId());
+  params.columnApi.autoSizeColumns(allColumnIds); // Automatically adjust the width to fit content
+}, []);
+
+
+const handleClose = (
+  event?: React.SyntheticEvent | Event,
+  reason?: SnackbarCloseReason,
+) => {
+  if (reason === 'clickaway') {
+    return;
+  }
+
+  setOpen(false);
+  setInfo(null)
+};
+
+
+
   return (
+    <Box sx={{
+      width: '100%',
+    }}>
     <div className="ag-theme-alpine-dark" style={{ height: 400, width: '100%' }}>
       <AgGridReact
         ref={gridRef}
         columnDefs={columnDefs}
-        rowData={offers}
+        rowData={offersWithoutOngoing}
         onRowClicked={onRowClicked}
-        rowSelection="single"
+        onSelectionChanged={onSelectionChanged}
         getRowStyle={getRowStyle}
-        getRowId={getRowId}
         autoSizeStrategy={autoSizeStrategy}
+        rowSelection="multiple" // Enable multi-select
+        rowMultiSelectWithClick={true}
+        suppressHorizontalScroll={false} // Allow horizontal scroll on mobile if needed
+        suppressCellFocus={true} // Prevents cells from stealing focus in mobile
         // pagination={true}
         // paginationPageSize={10}
-        // onGridReady={onGridReady}
+        onGridReady={onGridReady}
       //  domLayout='autoHeight'
-        // getRowNodeId={(data : any) => data.qortalAtAddress}
+        getRowId={(params) => params.data.qortalAtAddress} // Ensure rows have unique IDs 
       />
       {/* {selectedOffer && (
         <Button onClick={buyOrder}>Buy</Button>
 
       )} */}
     </div>
+    <Box sx={{
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      position: 'fixed',
+      bottom: '0px',
+      height: '80px',
+      padding: '7px',
+      background: '#181d1f',
+
+    }}>
+      <Box sx={{
+        display: 'flex',
+        gap: '5px',
+        flexDirection: 'column',
+        width: '100%'
+      }}>
+       <Typography sx={{
+          fontSize: '16px',
+          color: 'white',
+          width: 'calc(100% - 75px)'
+        }}>{selectedTotalQORT.toFixed(3)} QORT</Typography> <Typography sx={{
+          fontSize: '16px',
+          color: 'white',
+          width: 'calc(100% - 75px)'
+        }}><span>{selectedTotalLTC.toFixed(4)}</span> <span style={{
+          marginLeft: 'auto'
+        }}>LTC</span></Typography>
+      </Box>
+      {BuyButton()}
+    </Box>
+    <Snackbar anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} open={open} autoHideDuration={6000} onClose={handleClose}>
+        <Alert
+                
+
+          onClose={handleClose}
+          severity={info?.type}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {info?.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

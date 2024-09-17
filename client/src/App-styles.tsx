@@ -8,6 +8,7 @@ export const AppContainer = styled(Box)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "flex-start",
   padding: "1em 0",
+  paddingBottom: '50px'
 }));
 
 export const MainContainer = styled(Box)`
