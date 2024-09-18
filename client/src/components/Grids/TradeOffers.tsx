@@ -65,14 +65,14 @@ export const TradeOffers: React.FC<any> = ({ltcBalance}:any) => {
       pinned: 'left', // Optional, to pin this column on the left
       resizable: false,
     },
-    { headerName: "Amount (QORT)", field: "qortAmount" , flex: 1, // Flex makes this column responsive
-    minWidth: 100, // Ensure it doesn't shrink too much
+    { headerName: "QORT AMOUNT", field: "qortAmount" , flex: 1, // Flex makes this column responsive
+    minWidth: 150, // Ensure it doesn't shrink too much
     resizable: true },
     { headerName: "LTC/QORT", valueGetter: (params) => +params.data.foreignAmount / +params.data.qortAmount, sortable: true, sort: 'asc', flex: 1, // Flex makes this column responsive
-    minWidth: 100, // Ensure it doesn't shrink too much
+    minWidth: 150, // Ensure it doesn't shrink too much
     resizable: true  },
     { headerName: "Total LTC Value", field: "foreignAmount", flex: 1, // Flex makes this column responsive
-    minWidth: 100, // Ensure it doesn't shrink too much
+    minWidth: 150, // Ensure it doesn't shrink too much
     resizable: true },
     { headerName: "Seller", field: "qortalCreator", flex: 1, // Flex makes this column responsive
     minWidth: 100, // Ensure it doesn't shrink too much

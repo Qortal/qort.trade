@@ -135,6 +135,7 @@ export const RightColumn = styled(Box)({
   flexDirection: "row",
   gap: "10px",
   alignItems: "flex-start",
+  padding: '10px'
 });
 export const AvatarCircle = styled("img")({
   borderRadius: "50%",
