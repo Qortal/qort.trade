@@ -55,6 +55,11 @@ export const TradeOffers: React.FC<any> = ({ltcBalance}:any) => {
     );
   };
  
+  const defaultColDef = {
+    resizable: true, // Make columns resizable by default
+    sortable: true, // Make columns sortable by default
+    suppressMovable: true, // Prevent columns from being movable
+  };
 
   const columnDefs: ColDef[] = [
     { 
@@ -75,7 +80,7 @@ export const TradeOffers: React.FC<any> = ({ltcBalance}:any) => {
     minWidth: 150, // Ensure it doesn't shrink too much
     resizable: true },
     { headerName: "Seller", field: "qortalCreator", flex: 1, // Flex makes this column responsive
-    minWidth: 100, // Ensure it doesn't shrink too much
+    minWidth: 300, // Ensure it doesn't shrink too much
     resizable: true },
   ];
 
@@ -301,7 +306,7 @@ export const TradeOffers: React.FC<any> = ({ltcBalance}:any) => {
         setOpen(true)
         setInfo({
           type: 'error',
-          message: "You don't have enough QORT or your balance was not retrieved"
+          message: "You don't have enough LTC or your balance was not retrieved"
         })
         return
       }
@@ -435,6 +440,7 @@ const handleClose = (
       <AgGridReact
         ref={gridRef}
         columnDefs={columnDefs}
+        defaultColDef={defaultColDef}
         rowData={offersWithoutOngoing}
         onRowClicked={onRowClicked}
         onSelectionChanged={onSelectionChanged}
@@ -462,7 +468,7 @@ const handleClose = (
       alignItems: 'center',
       position: 'fixed',
       bottom: '0px',
-      height: '80px',
+      height: '100px',
       padding: '7px',
       background: '#181d1f',
 
@@ -477,13 +483,29 @@ const handleClose = (
           fontSize: '16px',
           color: 'white',
           width: 'calc(100% - 75px)'
-        }}>{selectedTotalQORT.toFixed(3)} QORT</Typography> <Typography sx={{
+        }}>{selectedTotalQORT?.toFixed(3)} QORT</Typography> 
+        <Box sx={{
+        display: 'flex',
+        gap: '20px',
+        alignItems: 'center',
+        width: 'calc(100% - 75px)'
+      }}>
+         <Typography sx={{
           fontSize: '16px',
-          color: 'white',
-          width: 'calc(100% - 75px)'
-        }}><span>{selectedTotalLTC.toFixed(4)}</span> <span style={{
+          color: selectedTotalLTC > ltcBalance ? 'red' : 'white',
+        }}><span>{selectedTotalLTC?.toFixed(4)}</span> <span style={{
           marginLeft: 'auto'
         }}>LTC</span></Typography>
+
+
+        </Box>
+        <Typography sx={{
+          fontSize: '16px',
+          color: 'white',
+          
+        }}><span>{ltcBalance?.toFixed(4)}</span> <span style={{
+          marginLeft: 'auto'
+        }}>LTC balance</span></Typography>
       </Box>
       {BuyButton()}
     </Box>

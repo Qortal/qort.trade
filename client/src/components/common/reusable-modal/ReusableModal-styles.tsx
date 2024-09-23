@@ -12,6 +12,7 @@ export const ReusableModalContainer = styled(Box)(({ theme }) => ({
   transform: "translate(-50%, -50%)",
   width: "629px",
   minHeight: "446px",
+  maxWidth: '90vw',
   height: "auto",
   borderRadius: "20px",
   border: "20px solid #3F3F3F",

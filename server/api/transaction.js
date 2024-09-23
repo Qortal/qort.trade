@@ -128,7 +128,7 @@ router.get('/buyorders/recent', async (req, res) => {
       res.json([])
       return
     }
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const thirtyMinutesAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recentBuyOrders = await BuyOrder.find({
       createdAt: { $gte: thirtyMinutesAgo }
     });

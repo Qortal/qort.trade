@@ -24,6 +24,7 @@ import logoSVG from '../../assets/SVG/LOGO.svg'
 import { Alert, Avatar, FormControlLabel, Snackbar, SnackbarCloseReason, Switch, styled } from "@mui/material";
 import { getMainEndpoint, setMainEndpoint } from "../../utils/findUsableApi";
 import { sendRequestToExtension } from "../../App";
+import { Terms } from "../Terms";
 
 const checkIfLocal = async () => {
   try {
@@ -196,7 +197,7 @@ export const Header = ({qortBalance, ltcBalance}: any) => {
         onChange={handleChange}  />}
         label="Use Local Node for trades"
       />
-
+  <Terms />
 <Snackbar anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} open={open} autoHideDuration={6000} onClose={handleClose}>
         <Alert
                 

@@ -13,6 +13,11 @@ export const OngoingTrades = () => {
     const { onGoingTrades } = useContext(gameContext);
 
 
+    const defaultColDef = {
+        resizable: true, // Make columns resizable by default
+        sortable: true, // Make columns sortable by default
+        suppressMovable: true, // Prevent columns from being movable
+      };
 
     const columnDefs: ColDef[] = [
         {
@@ -67,6 +72,7 @@ export const OngoingTrades = () => {
         <div className="ag-theme-alpine-dark" style={{ height: 225, width: '100%' }}>
             <AgGridReact
                 columnDefs={columnDefs}
+                defaultColDef={defaultColDef}
                 rowData={onGoingTrades}
                 // onRowClicked={onRowClicked}
                 rowSelection="single"
